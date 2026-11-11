@@ -1,0 +1,19 @@
+{
+  "id": "/thumbnail-style-library/",
+  "name": "Thumbnail Style Library",
+  "short_name": "TH Library",
+  "description": "Katalog gaya thumbnail TH1 hingga TH1000",
+  "start_url": "/thumbnail-style-library/",
+  "scope": "/thumbnail-style-library/",
+  "display": "standalone",
+  "background_color": "#0d111b",
+  "theme_color": "#0d111b",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

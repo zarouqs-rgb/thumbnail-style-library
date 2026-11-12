@@ -1,0 +1,422 @@
+<!DOCTYPE html><html lang="ms"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TH Library v1.2.3</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font:15px/1.4 system-ui,sans-serif;background:#0d111b;color:#e8ecf4;padding:12px;max-width:760px;margin:auto}
+h1{font-size:20px;margin:6px 0 10px}input,textarea,button,select{font:inherit}
+input[type=search],input[type=text],textarea{width:100%;background:#161c2b;border:1px solid #2a3350;color:#e8ecf4;border-radius:10px;padding:10px}
+textarea{min-height:240px;}#note{min-height:70px;font:14px/1.4 system-ui,sans-serif}textarea{font:12px/1.35 ui-monospace,monospace}
+button{background:#2b6cff;color:#fff;border:0;border-radius:10px;padding:10px 14px;margin:4px 4px 4px 0}button.alt{background:#262e45}button:disabled{opacity:.5}
+#cats{display:flex;gap:6px;overflow-x:auto;padding:8px 0}#cats button{white-space:nowrap;background:#1b2338;padding:6px 12px;font-size:13px}#cats button.on{background:#2b6cff}.pf.on{background:#2b6cff}.exi .tg{position:static;display:block;margin:4px 0 0;font-size:12px;padding:3px 8px;background:#262e45}.exi .tg.ed{background:#b8561a}
+#list{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.card{background:#161c2b;border-radius:12px;padding:8px;cursor:pointer}.card small{display:block;color:#9aa6c4;font-size:11px;min-height:28px}
+.th{aspect-ratio:3/4;background:#202842;border-radius:8px;display:grid;place-items:center;overflow:hidden;margin-bottom:6px;color:#6d7aa0}.th img{width:100%;height:100%;object-fit:cover}
+.m,small{color:#9aa6c4}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}.sec{background:#121828;border:1px solid #232b45;border-radius:12px;padding:12px;margin:10px 0}
+#lockbox img,.exi img{width:90px;border-radius:8px}.exi{display:inline-block;position:relative;margin-right:6px}.exi button{position:absolute;right:0;top:0;padding:2px 8px;margin:0}
+.out{width:100%;border-radius:12px;margin-top:8px}label.f{display:inline-block;background:#262e45;border-radius:10px;padding:10px 14px;cursor:pointer}
+</style></head><body>
+<div id="home"><h1>TH Library <span id="ver" style="font-size:12px;font-weight:600;padding:3px 8px;border-radius:99px;background:#7a2b2b;color:#fff;vertical-align:middle;margin-left:6px">v1.2.3 ⚠ belum lengkap</span></h1><button id="autoBtn" style="width:100%;padding:14px;font-size:16px;margin:6px 0 10px">✨ Jana Auto bebas: reka konsep dari tajuk + foto</button><button id="kamusBtn" class="alt" style="width:100%;margin:0 0 8px">📖 Kamus Gaya: baca semua jenis gaya dan maksudnya</button><div id="gcats"></div><div id="gal"></div>
+<details id="old"><summary style="margin:12px 0;font-weight:700">Perpustakaan lama (1,060 kod TH)</summary><input type="search" id="q" placeholder="Cari kod, contoh TH5, atau nama gaya">
+<div id="cats"></div>
+<div class="row"><label><input type="checkbox" id="onlyDetail"> Hanya yang ada resipi terperinci</label><label><input type="checkbox" id="onlyLock"> Hanya yang dikunci</label><span id="cnt" class="m"></span><br><small id="pst"></small></div>
+<div id="list"></div></details>
+<div class="sec"><b>Tetapan dan sandaran</b><p class="m">Kunci API Gemini (biarkan kosong dalam Canvas).</p><input type="text" id="key" placeholder="Kunci API (pilihan)">
+<b>Import resipi</b><p class="m">Tampal JSON resipi atau pilih fail .json.</p><textarea id="rtxt" spellcheck="false" style="min-height:70px" placeholder="{\"TH13\":{...}}"></textarea><button class="alt" id="rimp">Import resipi tampal</button> <label class="f">Pilih fail<input type="file" id="rfile" accept=".json,.txt" hidden></label><p id="rmsg" class="m"></p>
+<button class="alt" id="bk">Eksport rujukan terkunci</button> <label class="f">Import<input type="file" id="rs" accept=".json" hidden></label><p id="bmsg" class="m"></p></div></div>
+<div id="view" hidden><button class="alt" id="back">← Kembali</button><h1 id="vt"></h1>
+<div class="sec"><b>Tajuk (pilihan)</b><input type="text" id="hl" placeholder="Biarkan kosong untuk tajuk contoh"></div>
+<div class="sec"><b>Platform</b><div class="row" id="plat"></div><p class="m" id="pinfo"></p><button class="alt" id="allp">Jana semua 4 platform (4 imej)</button><br><b>Saiz</b><div class="row"><label><input type="radio" name="rt" value="9:16" checked> 9:16</label><label><input type="radio" name="rt" value="16:9"> 16:9</label><label><input type="radio" name="rt" value="1:1"> 1:1</label><label><input type="radio" name="rt" value="4:5"> 4:5</label></div></div>
+<div class="sec"><b>Gambar kad (pilihan, tidak dihantar)</b><div id="lockbox"></div><b>Rujukan tambahan (maks 8)</b><div id="ex"></div><label class="f" id="addlbl" style="margin-top:6px">+ Tambah gambar<input type="file" id="addex" accept="image/*" multiple hidden></label></div>
+<div class="sec"><b>Prompt JSON</b><textarea id="json" spellcheck="false"></textarea><button class="alt" id="copy">Salin JSON</button></div>
+<div class="sec"><b>Arahan perubahan (pilihan)</b><textarea id="note" spellcheck="false" placeholder="Contoh: tukar latar jadi malam, letak lori bomba di tengah, kekalkan tajuk"></textarea></div>
+<button class="alt" id="mk">1. Jana JSON</button><button id="autogo" hidden>✨ Jana Auto terus ke gambar</button><button id="gen">2. Jana gambar</button><button class="alt" id="lockbtn" hidden>Kunci sebagai rujukan</button><button class="alt" id="dl" hidden>Muat turun</button>
+<p id="msg" class="m"></p><div id="res"></div></div>
+<script>(function(){function b(m){var d=document.getElementById("thdiag");if(!d){d=document.createElement("div");d.id="thdiag";d.style.cssText="position:fixed;left:0;right:0;top:0;z-index:99999;background:#b00020;color:#fff;padding:10px;font:13px sans-serif";(document.body||document.documentElement).appendChild(d)}d.textContent=m}
+window.addEventListener("error",function(e){b("RALAT SKRIP: "+e.message+" (baris "+e.lineno+")")});
+setTimeout(function(){if(!window.__TH_END&&!document.getElementById("thdiag"))b("Kod tidak lengkap: skrip tidak habis dijalankan. Salin semula fail penuh.")},2000)})()</script>
+<script>
+const CATS=["Berita & Breaking News","Viral & Trending","Misteri & Persoalan","Amaran & Bahaya","Tutorial & Panduan","Teknologi & AI","Mekanikal & 3D Cutaway","Komedi & Reaksi","Emosi & Kisah Manusia","Sinematik & Filem","Dokumentari & Sejarah","Siasatan & Fakta","Sains & Pendidikan","Alam & Haiwan","Produk & UGC","Makanan & Gaya Hidup","Sukan & Aksi","Kewangan & Perniagaan","Tipografi & Minimal","Eksperimental & Kreatif","Sains & Teknologi Terkini","Multimedia & Digital"];
+const LAYOUTS=["Perspektif/lapisan kedalaman","Fokus tengah","Subjek kiri, teks kanan","Subjek kanan, teks kiri","Diagonal dinamik","Bingkai editorial","Split-screen","Close-up dramatik","Ruang negatif","Perspektif rendah"];
+// Rekod terperinci. t = teks tepat (t[0] = tajuk utama). pf = prompt penuh (token {H} = tajuk). Tanpa pf, prompt dibina daripada medan.
+const R={
+TH1:{n:"Berita TV lower-third",t:["LAPORAN KHAS","TERKINI"],f:"upright bold condensed sans-serif, uppercase, white",l:"generic dark news studio, small broadcast camera on the right, subject area on the left",s:"dark navy lower-third headline bar at the bottom with a small red ribbon above it reading TERKINI",p:"navy and red",m:"Serius, siaran moden"},
+TH2:{n:"Akhbar arkib",t:["ARKIB RAHSIA"],f:"heavy typewriter lettering with a rubber-stamp look, dark red ink",l:"worn old newspaper texture with overlapping anonymous archival photographs, monochrome grain",s:"large headline stamp at the top, tilted photograph in the centre",p:"black, off-white and a little red",m:"Misteri, arkib lama"},
+TH3:{n:"Amaran ribut berus",t:["AMARAN CUACA"],up:1,m:"Tegang, dramatik, serius",pf:"Create a dramatic storm-warning thumbnail. Dark charcoal storm clouds filling the sky with a single distant fork of lightning on the far left, desaturated and cinematic, matte, not oversaturated. A flat dark landscape strip at the bottom. The headline is hand-painted brush lettering, expressive and uneven like real paint on a wall, thick brush strokes with dry-brush edges and slight paint splatter, off-white, very large, running diagonally upward from lower-left to upper-right across the sky, two lines. The headline text is exactly: {H}. Real brush-script feel with natural varied stroke width, not a glossy or 3D font, no bevel, no glow, only a subtle soft dark shadow for legibility. In the lower-right corner, a small yellow diamond road-warning sign with a black lightning-bolt icon and NO text on it. One focal point: the diagonal headline. Keep headline and sign inside the central 3:4 safe zone. No people, no real logos, no real weather agency branding.",p:"charcoal and yellow",s:"diagonal headline across the sky, small yellow warning sign lower right"},
+TH4:{n:"Siber glitch pixel",t:["SISTEM DICEROBOH","AMARAN","AKSES DITOLAK"],up:1,m:"Siber, tegang, glitch terkawal",pf:"Create a cyber-intrusion thumbnail on a dark computer monitor, very dark near-black background with subtle CRT scanlines and slight screen curvature, restrained RGB chromatic aberration on the text edges only. Left side: a stacked, left-aligned headline in a chunky blocky pixel monospace typeface (bitmap font look), cyan with a thin magenta offset ghost copy shifted a few pixels to the right to create the RGB split. The headline text is exactly: {H} (stack the words on separate lines). The glitch must be small: every letter stays fully readable. Upper-right: a small retro operating-system window with a thin magenta border and a title bar that reads AMARAN in small pixel capitals; inside the window, one line of small pixel monospace text: AKSES DITOLAK, and a blinking block cursor after it. A few faint horizontal glitch bands crossing the image, not covering the text. Anonymous generic computer terminal feel, no hooded figure, no real company logos, no real operating system branding, no real hacking claims. Matte phosphor look, no glossy 3D, no bevel. Exactly one font family: pixel monospace. Keep text inside the central 3:4 safe zone. One focal point: the stacked headline.",p:"black, magenta and cyan",s:"stacked headline left, small retro window upper right"},
+TH5:{n:"Editorial ekonomi serif",t:["Harga Naik Lagi?"],m:"Editorial kewangan yang tenang dan yakin",pf:"Create a refined financial editorial thumbnail. Soft matte cream paper background with subtle grain. On the right side only: a neat stack of generic gold coins and a delicate abstract green candlestick chart with a thin rising arrow, understated and not glossy. The left half stays largely open for the headline. Headline typography: an elegant high-contrast editorial serif (Didone or Playfair-style, bold weight, upright not italic), dark bottle green, left-aligned, large and clearly legible at thumbnail size, broken into short lines. The headline text is exactly: {H}. A thin gold hairline rule under the text block is allowed. One focal point. Matte photographic finish, controlled contrast, no 3D bevel, no glossy highlights, no glow, no drop-shadow on the lettering. Keep all key elements inside the central 3:4 safe zone.",p:"cream and bottle green",s:"headline left aligned over open cream space, coins and chart on the right"},
+TH6:{n:"Warisan Islamik serif klasik",t:["WARISAN KITA"],f:"classical ornamental serif, gold",l:"generic Islamic geometric architecture with no real institution or branding",s:"symmetrical central layout with a decorative title frame",p:"deep green and restrained gold",m:"Tenang, bermaruah"},
+TH7:{n:"Kad data minimal",t:["Angka Terkini"],f:"friendly rounded bold sans-serif, dark",l:"soft white background with abstract ring chart and pink bars, no numbers",s:"white rounded card at lower left holding the headline, graphics on the right",p:"white and soft red",m:"Bersih, mesra"},
+TH8:{n:"Siasatan kolaj",t:["BUKTI DI LOKASI","BUKTI 07","FAIL TERBUKA"],up:1,m:"Siasatan, tactile, serius",pf:"Create an investigative evidence-board collage thumbnail on a worn wooden table viewed from above. Several anonymous black-and-white photographs (generic landscapes and buildings, no faces, no real places) overlap at slightly different angles, held with strips of beige masking tape, with torn paper edges and a red map pin pushed into one photo. Matte, tactile, realistic paper texture, soft natural light, no glossy effects. Three pieces of text only, each exactly as given: (1) HEADLINE in a stencil typeface, black, heavy, uppercase, on a torn cream paper strip across the top third: {H}. (2) A small manila evidence tag tied with string on the right with the word BUKTI 07 typed in a worn typewriter typeface. (3) A small typed caption on a strip of paper under the lower-left photo in the same typewriter typeface: FAIL TERBUKA. Exactly two font families: stencil and typewriter. Palette: cream, black, one red accent. One focal point: the stencil headline. Keep headline and main collage inside the central 3:4 safe zone. No real faces, no real logos, no real news claims.",p:"cream, black, one red accent",s:"torn paper strip headline at top, evidence tag and note below"},
+TH9:{n:"Penyelamat dokumentari",t:["OPERASI MENYELAMAT"],f:"extra-bold upright block typography, white",l:"generic rescue scene with an unmarked boat, ocean blue and orange environment, documentary colour grade",s:"one huge word headline with subtle HUD corner brackets, anonymous silhouettes only",p:"orange and ocean blue",m:"Mendebarkan, dokumentari"},
+TH10:{n:"Nota lapangan",t:["Nota Lapangan"],f:"authentic handwritten blue marker lettering",l:"documentary natural landscape photograph, blank yellow sticky note on the side",s:"informal off-centre notebook composition",p:"cream and ink blue",m:"Santai, jurnal"},
+TH11:{n:"Kewangan Swiss minimal",t:["Data Minggu Ini","01"],f:"tight bold Swiss grotesk, black",l:"clean white background with a 12-column grid and hairline rules, no photograph",s:"giant 01 numeral at the top, headline below, one small red accent",p:"white, black and one red accent",m:"Disiplin, minimal"},
+TH12:{n:"Blueprint teknikal",t:["PROJEK BAHARU"],up:1,f:"technical monospaced engineering lettering, pale cyan-white",l:"blue drafting-paper blueprint with a fine cyan grid and a thin architectural sketch in one corner",s:"headline left aligned with a dimension line beneath it",p:"deep blueprint blue and cyan",m:"Teknikal, tepat"}
+};
+const NEG="teks berlebihan, ejaan salah, huruf hilang atau bertukar, perkataan rekaan, simbol tambahan seperti &, teks tambahan, nombor atau tarikh rawak, watermark, logo sebenar, jenama sebenar, wajah, imej kabur, resolusi rendah, kilau plastik, bevel 3D, glow berlebihan, tuntutan berita sebenar, fakta rekaan, label atau teks tentang cara gambar dibuat";
+const FOTO="USER PHOTOS: the attached images are the user's own real photographs. Use them as the photographic content of this composition exactly as supplied: if the layout has a single photo area or background, place the first photo there full-bleed; if the layout has several photo frames, place EACH photo in a frame, starting with the most prominent. Do NOT edit the attached photos: keep faces, clothing, original colours, background, lighting and the arrangement of people exactly as supplied, including any blur or pixelation already present. Do not convert to black and white, do not filter, redraw, retouch, beautify or swap faces, do not add or remove people, do not crop faces. Only scale, slightly rotate and frame them. This overrides any wording above such as anonymous, black-and-white, no faces or no real faces. All text stays exactly as specified. Only edit a photo if arahan_perubahan explicitly asks for it.";
+const MODEL="gemini-3.1-flash-image"; // tukar di sini jika Google menukar nama model
+const RATIOS={"9:16":"9:16","16:9":"16:9","1:1":"1:1","4:5":"4:5"};
+try{Object.assign(R,JSON.parse(localStorage.getItem("thR")||"{}"))}catch(e){}
+const $=s=>document.querySelector(s);
+let cur=null, ratio="9:16", lastImg=null, extras=[], cat=-1, db=null, mem={};
+function catOf(n){return n<=1000?Math.floor((n-1)/50):20+Math.floor((n-1001)/30)}
+function codeNum(c){return parseInt(c.replace(/\D/g,""),10)}
+function buildJSON(code,full){
+  const n=codeNum(code), r=R[code], H=($("#hl").value.trim()||(r?r.t[0]:""));
+  const o={kod:code,kategori:CATS[catOf(n)],nisbah:ratio};
+  if(r){
+    o.susun_atur=r.s; o.mood=r.m; o.palet=r.p;
+    const hh=r.up?H.toUpperCase():H;
+    const rest=r.t.slice(1);
+    o.prompt=r.pf?r.pf.replace(/\{H\}/g,hh):
+      "Create a professional thumbnail concept. Style: "+r.n+". Background and subject: "+r.l+". Layout: "+r.s+". Headline typography: "+r.f+". The headline text is exactly: "+hh+(rest.length?"; other text exactly: "+rest.join(", "):"")+". Do not write any other words, symbols or numbers anywhere in the image. Palette: "+r.p+". Matte finish, controlled contrast, no 3D bevel, no glow, no glossy effects. One focal point, legible at thumbnail size, key elements inside the central 3:4 safe zone. No real faces, logos, brands or real news claims.";
+    o.kandungan={tajuk:hh,subjek:r.l||""};
+    o.teks_pada_gambar={guna:true,teks_tepat:[hh,...rest],nota:"Eja tepat. Tiada teks lain, tiada simbol tambahan."};
+  }else{
+    o.susun_atur=LAYOUTS[n%10];
+    o.prompt="Create a professional thumbnail for category "+CATS[catOf(n)]+", layout: "+LAYOUTS[n%10]+". One strong focal point, high contrast, matte finish, no AI-plastic look, key elements inside the central 3:4 safe zone. Headline text is exactly: "+(H||"(tulis tajuk)")+". No other text. No real faces, logos or brands. (Resipi terperinci kod ini belum disediakan.)";
+    o.kandungan={tajuk:H,subjek:""}; o.teks_pada_gambar={guna:!!H,teks_tepat:H?[H]:[]};
+  }
+  o.kawasan_selamat="zon tengah 3:4"; o.negative_prompt=NEG;
+  o.rujukan={bilangan_gambar:(db&&mem[code]?1:0)+extras.length,nota:"Gunakan gambar rujukan untuk gaya dan subjek sahaja."};
+  if(full){const nt=$("#note").value.trim();
+    if(extras.length){
+      o.negative_prompt=String(o.negative_prompt).replace(/wajah,\s*/g,"");
+      o.prompt+=" "+FOTO;
+      o.foto_pengguna={bilangan:extras.length,arahan:"Foto lampiran ialah foto sebenar pengguna. Letakkan sebagai foto bercetak menggantikan foto tempat-letak. Jangan edit foto: kekalkan wajah, pakaian, warna asal dan susunan orang."};
+    }
+    if(nt)o.arahan_perubahan=nt;
+  }
+  return o;
+}
+// ---- simpanan (IndexedDB, dengan sandaran memori) ----
+function openDB(){return new Promise(res=>{try{const q=indexedDB.open("thlib",1);q.onupgradeneeded=()=>q.result.createObjectStore("ref");q.onsuccess=()=>res(q.result);q.onerror=()=>res(null)}catch(e){res(null)}})}
+function dbPut(k,v){mem[k]=v;if(!db)return;try{db.transaction("ref","readwrite").objectStore("ref").put(v,k)}catch(e){}}
+function dbDel(k){delete mem[k];if(!db)return;try{db.transaction("ref","readwrite").objectStore("ref").delete(k)}catch(e){}}
+function dbAll(){return new Promise(res=>{if(!db)return res();try{const q=db.transaction("ref").objectStore("ref").openCursor();q.onsuccess=()=>{const c=q.result;if(c){mem[c.key]=c.value;c.continue()}else res()};q.onerror=()=>res()}catch(e){res()}})}
+// ---- senarai ----
+function allCodes(){const a=[];for(let i=1;i<=1060;i++)a.push("TH"+i);return a}
+function render(){
+  const q=$("#q").value.trim().toUpperCase().replace(/\s/g,"");
+  let list=allCodes().filter(c=>(cat<0||catOf(codeNum(c))===cat)&&(!q||c.includes(q)||(R[c]&&R[c].n.toUpperCase().includes($("#q").value.trim().toUpperCase()))));
+  const only=$("#onlyDetail").checked; if(only)list=list.filter(c=>R[c]);
+  list.sort((x,y)=>(y===q)-(x===q));const shown=list.slice(0,60);
+  $("#list").innerHTML=shown.map(c=>{const r=R[c],im=mem[c];return `<div class="card" data-c="${c}"><div class="th">${im?`<img src="${im}">`:`<span>${c}</span>`}</div><b>${c}</b><small>${r?r.n:"Resipi belum ada"}</small></div>`}).join("")||"<p class=m>Tiada padanan.</p>";
+  $("#cnt").textContent=list.length+" kod"+(list.length>60?" (60 pertama)":"");
+  document.querySelectorAll(".card").forEach(e=>e.onclick=()=>openCode(e.dataset.c));
+}
+function openCode(c){cur=c;extras=[];lastImg=null;$("#hl").value="";$("#view").hidden=false;$("#home").hidden=true;
+  $("#vt").textContent=c+" · "+CATS[catOf(codeNum(c))]+(R[c]?" · "+R[c].n:"");$("#res").innerHTML="";$("#msg").textContent="";$("#note").value="";rebuild();refresh();window.scrollTo(0,0)}
+function rebuild(){$("#json").value=JSON.stringify(buildJSON(cur),null,2)}
+function refresh(){
+  const im=mem[cur];$("#lockbox").innerHTML=im?`<img src="${im}"><button id="unlock">Buang kunci</button>`:"<small>Tiada gambar kad (tidak dihantar ke model).</small>";
+  if($("#unlock"))$("#unlock").onclick=()=>{dbDel(cur);refresh();render()};
+  $("#ex").innerHTML=extras.map((e,i)=>`<div class="exi"><img src="${e}"><button data-i="${i}">×</button></div>`).join("");
+  document.querySelectorAll(".exi button").forEach(b=>b.onclick=()=>{extras.splice(+b.dataset.i,1);refresh()});
+  $("#addlbl").hidden=extras.length>=8;$("#lockbtn").hidden=!lastImg;$("#dl").hidden=!lastImg;
+}
+function shrink(file,max=1536){return new Promise(res=>{const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*s;c.height=im.height*s;c.getContext("2d").drawImage(im,0,0,c.width,c.height);res(c.toDataURL("image/jpeg",.92))};im.src=fr.result};fr.readAsDataURL(file)})}
+async function generate(){
+  const msg=$("#msg");msg.textContent="Menjana… (boleh ambil 20–60 saat)";$("#gen").disabled=true;
+  let obj;try{obj=JSON.parse($("#json").value)}catch(e){msg.textContent="JSON tidak sah. Betulkan dahulu.";$("#gen").disabled=false;return}
+  obj.nisbah=ratio;
+  const refs=extras.slice();
+  if(refs.length&&!obj.foto_pengguna){msg.textContent="Tekan Jana JSON dahulu supaya arahan foto masuk ke dalam JSON.";$("#gen").disabled=false;return}
+  const parts=[{text:"Jana SATU imej berdasarkan spesifikasi JSON ini. Jangan balas dengan teks, terus jana imejnya."+(refs.length?" Imej yang dilampirkan ialah foto pengguna; ikut medan foto_pengguna dan prompt.":"")+"\n"+JSON.stringify(obj)}];
+  refs.forEach(d=>{const m=d.match(/^data:(.+?);base64,(.*)$/);if(m)parts.push({inlineData:{mimeType:m[1],data:m[2]}})});
+  const key=localStorage.getItem("thkey")||""; // kosong = Canvas isi sendiri
+  try{
+    const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{role:"user",parts}],generationConfig:{responseModalities:["TEXT","IMAGE"],imageConfig:{aspectRatio:RATIOS[ratio]}}})});
+    const j=await r.json();if(!r.ok)throw new Error(j.error&&j.error.message||r.status);
+    const p=((j.candidates||[])[0]||{content:{parts:[]}}).content.parts.filter(x=>x.inlineData&&!x.thought).pop();
+    if(!p)throw new Error("Tiada imej dalam jawapan"+((j.candidates||[])[0]&&j.candidates[0].finishReason?" ("+j.candidates[0].finishReason+")":""));
+    lastImg="data:"+p.inlineData.mimeType+";base64,"+p.inlineData.data;
+    showImg();msg.textContent="Siap. Kunci jika kau suka, atau jana lagi.";
+  }catch(e){msg.textContent="Gagal: "+e.message}
+  $("#gen").disabled=false;refresh();
+}
+function importRec(txt){
+  let o;try{o=JSON.parse(txt)}catch(e){return "JSON resipi tidak sah."}
+  const ks=Object.keys(o).filter(k=>/^TH\d+$/.test(k)&&o[k]&&(o[k].pf||(o[k].t&&o[k].n)));
+  if(!ks.length)return "Tiada resipi sah dijumpai.";
+  let all={};try{all=JSON.parse(localStorage.getItem("thR")||"{}")}catch(e){}
+  ks.forEach(k=>{R[k]=o[k];all[k]=o[k]});
+  try{localStorage.setItem("thR",JSON.stringify(all))}catch(e){return "Diimport "+ks.length+" resipi (tidak dapat disimpan kekal; import semula selepas muat semula)."}
+  render();return "Diimport dan disimpan: "+ks.length+" resipi ("+ks[0]+" hingga "+ks[ks.length-1]+").";
+}
+function backup(){const b=new Blob([JSON.stringify(mem)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="th-rujukan-sandaran.json";a.click()}
+async function restore(f){try{const o=JSON.parse(await f.text());Object.keys(o).forEach(k=>dbPut(k,o[k]));render();$("#bmsg").textContent="Dipulihkan "+Object.keys(o).length+" rujukan."}catch(e){$("#bmsg").textContent="Fail sandaran tidak sah."}}
+async function init(){
+  $("#cats").innerHTML=`<button data-i="-1" class="on">Semua</button>`+CATS.map((c,i)=>`<button data-i="${i}">${c}</button>`).join("");
+  document.querySelectorAll("#cats button").forEach(b=>b.onclick=()=>{cat=+b.dataset.i;document.querySelectorAll("#cats button").forEach(x=>x.classList.toggle("on",x===b));render()});
+  $("#q").oninput=render;$("#onlyDetail").onchange=render;
+  document.querySelectorAll("input[name=rt]").forEach(r=>r.onchange=()=>{ratio=r.value;if(cur)rebuild()});
+  $("#hl").oninput=()=>rebuild();
+  $("#back").onclick=()=>{$("#view").hidden=true;$("#home").hidden=false;render()};
+  $("#gen").onclick=generate;$("#mk").onclick=()=>{$("#json").value=JSON.stringify(buildJSON(cur,true),null,2);$("#msg").textContent="JSON dikemas kini dengan foto dan nota. Semak, salin jika suka, kemudian Jana gambar."};$("#note").oninput=()=>{$("#msg").textContent="Nota berubah. Tekan Jana JSON untuk masukkan ke dalam JSON."};
+  $("#copy").onclick=async()=>{try{await navigator.clipboard.writeText($("#json").value);$("#msg").textContent="JSON disalin."}catch(e){$("#json").select();document.execCommand("copy");$("#msg").textContent="JSON disalin."}};
+  $("#lockbtn").onclick=()=>{dbPut(cur,lastImg);$("#msg").textContent="Dikunci sebagai rujukan "+cur+".";refresh();render()};
+  $("#dl").onclick=()=>{const a=document.createElement("a");a.href=lastImg;a.download=cur+"_"+(plat?plat+"_":"")+ratio.replace(":","x")+".png";a.click()};
+  $("#addex").onchange=async e=>{for(const f of [...e.target.files].slice(0,8-extras.length))extras.push(await shrink(f));e.target.value="";refresh();$("#msg").textContent="Foto ditambah. Tekan Jana JSON untuk masukkan arahan foto ke dalam JSON."};
+  $("#rimp").onclick=()=>{$("#rmsg").textContent=importRec($("#rtxt").value);$("#rtxt").value=""};$("#rfile").onchange=async e=>{if(e.target.files[0]){$("#rmsg").textContent=importRec(await e.target.files[0].text());e.target.value=""}};$("#bk").onclick=backup;$("#rs").onchange=e=>e.target.files[0]&&restore(e.target.files[0]);
+  $("#key").value=localStorage.getItem("thkey")||"";$("#key").onchange=()=>localStorage.setItem("thkey",$("#key").value.trim());
+  db=await openDB();await dbAll();render();
+}
+init();
+const PL=[
+{p:"TikTok",r:"9:16",h:"Menegak 9:16. Bawah dan tepi kanan dikosongkan kerana butang TikTok.",s:"zon tengah 9:16, kosongkan 20% bawah dan tepi kanan",n:"Vertical 9:16 cover for TikTok. Keep the headline and main subject inside the central area; leave the bottom 20% and the right edge clear because the TikTok caption and buttons cover them. This note overrides any safe-zone wording in the prompt."},
+{p:"Facebook",r:"1:1",h:"Segi empat 1:1 untuk suapan Facebook.",s:"zon tengah, jauhkan 8% tepi luar",n:"Square 1:1 image for the Facebook feed. Headline large and readable on a phone screen; keep key elements away from the outer 8% edge. This note overrides any safe-zone wording in the prompt."},
+{p:"YouTube",r:"16:9",h:"Melintang 16:9. Tajuk 3-4 patah perkataan sahaja.",s:"zon tengah 16:9, kosongkan sudut kanan bawah",n:"Horizontal 16:9 YouTube thumbnail. Headline very large, at most 4 words, subject on one side; keep the bottom-right corner clear because the duration badge covers it. This note overrides any safe-zone wording in the prompt."},
+{p:"Instagram",r:"4:5",h:"Potret 4:5 untuk suapan Instagram.",s:"zon tengah, jauhkan 8% tepi luar",n:"Portrait 4:5 image for the Instagram feed. Keep the headline and subject inside the central area so a grid crop does not cut them. This note overrides any safe-zone wording in the prompt."}
+];
+let plat="",batch=false;
+$("#plat").innerHTML=PL.map(x=>`<button class="alt pf" data-p="${x.p}">${x.p} ${x.r}</button>`).join("");
+function mark(){document.querySelectorAll(".pf").forEach(b=>b.classList.toggle("on",b.dataset.p===plat));const q=PL.find(x=>x.p===plat);$("#pinfo").textContent=q?q.h:"Pilih platform atau saiz di bawah."}
+function wantFull(){return extras.length>0||$("#note").value.trim()!==""}
+function setPlat(p){const q=PL.find(x=>x.p===p);if(!q)return;plat=p;ratio=q.r;const rad=document.querySelector('input[name=rt][value="'+ratio+'"]');if(rad)rad.checked=true;mark();if(cur)$("#json").value=JSON.stringify(buildJSON(cur,wantFull()),null,2)}
+document.querySelectorAll(".pf").forEach(b=>b.onclick=()=>setPlat(b.dataset.p));
+document.querySelectorAll("input[name=rt]").forEach(r=>r.addEventListener("change",()=>{plat="";mark();if(cur)rebuild()}));
+const EDIT=new Set();
+function photoRule(m){const list=m.map(x=>"Photo "+x.foto+": "+(x.mod==="edit"?"EDIT":"LOCKED")).join("; ");return "USER PHOTOS: the attached images are the user's own real photographs, numbered in the order attached. "+list+". LOCKED photo: keep the people exactly as supplied. Face, hair, body, pose, skin tone and the whole outfit (every garment, its colour, pattern and fit, and every accessory) stay identical. Do not restyle, recolour, replace, add or remove clothing, and do not retouch, beautify, filter, redraw or crop faces. Only scale, slightly rotate and place the photo into the composition: if the layout has a single photo area or background, place the first photo there; if the layout has several photo frames or blank portrait placeholders, place each photo in one frame, starting with the most prominent; if the layout has no photo area, place the person as a clean cut-out in the main empty area without covering the headline. EDIT photo: this photo may be changed as described in arahan_perubahan. EVERYTHING ELSE in the image (background, props, layout, colours, lighting mood, typography, text and effects) must follow the prompt and the JSON fields exactly, and nothing may be added that the prompt does not describe. This overrides any wording above such as anonymous, black-and-white, no faces or no real faces. All text stays exactly as specified. Do not add any text about how the image was made."}
+const _bj=buildJSON;
+buildJSON=function(code,full){const o=_bj(code,full);const q=PL.find(x=>x.p===plat);if(q){o.platform=q.p;o.nisbah=q.r;o.kawasan_selamat=q.s;o.nota_platform=q.n}if(o.rujukan){o.rujukan.bilangan_gambar=extras.length;o.rujukan.nota=extras.length?"Gambar lampiran ialah foto pengguna; ikut medan foto_pengguna.":"Tiada gambar rujukan dihantar. Gambar kad yang dikunci hanyalah sampel untuk dipilih, tidak digunakan dalam penjanaan."}
+if(full&&extras.length&&typeof o.prompt==="string"){const m=extras.map((s,i)=>({foto:i+1,mod:EDIT.has(s)?"edit":"kunci"}));o.prompt=o.prompt.split(FOTO).join(photoRule(m));o.foto_pengguna={bilangan:extras.length,mod:m,arahan:"Foto lampiran ialah foto sebenar pengguna. Foto bertanda kunci: kekalkan wajah, pakaian lengkap, warna asal dan susunan orang tepat seperti asal. Foto bertanda edit: boleh diubah ikut arahan_perubahan. Semua yang lain dalam gambar ikut prompt dan medan JSON."}}
+return o};
+const _rf=refresh;
+refresh=function(){_rf();document.querySelectorAll("#ex .exi").forEach((d,i)=>{const s=extras[i],ed=EDIT.has(s),b=document.createElement("button");b.className="tg"+(ed?" ed":"");b.textContent=ed?"Edit":"Kunci";b.onclick=()=>{if(EDIT.has(s))EDIT.delete(s);else EDIT.add(s);refresh();$("#msg").textContent="Mod foto ditukar. Tekan Jana JSON untuk kemas kini."};d.appendChild(b)})};
+function showImg(){const h=`<img src="${lastImg}" class="out">`;if(!batch){$("#res").innerHTML=h;return}const nm=cur+"_"+plat+"_"+ratio.replace(":","x")+".png";$("#res").insertAdjacentHTML("beforeend",`<p class="m"><b>${plat}</b> · ${ratio}</p>`+h+`<a class="f" href="${lastImg}" download="${nm}">Muat turun ${plat}</a>`)}
+$("#allp").onclick=async()=>{if(!cur)return;batch=true;$("#res").innerHTML="";for(const q of PL){setPlat(q.p);await generate();if(($("#msg").textContent||"").startsWith("Gagal")||($("#msg").textContent||"").startsWith("JSON tidak sah")||($("#msg").textContent||"").startsWith("Tekan Jana"))break}batch=false;$("#msg").textContent="Selesai. Semak setiap platform di bawah."};
+const LSK="thS",LIM=150000;
+function lsRead(){try{return JSON.parse(localStorage.getItem(LSK)||"{}")}catch(e){return {}}}
+function lsWrite(o){try{localStorage.setItem(LSK,JSON.stringify(o));return true}catch(e){return false}}
+function lsOK(){try{localStorage.setItem("thT","1");localStorage.removeItem("thT");return true}catch(e){return false}}
+function thumb(src,max=420){return new Promise(res=>{const im=new Image();im.onload=()=>{const s=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.max(1,Math.round(im.width*s));c.height=Math.max(1,Math.round(im.height*s));c.getContext("2d").drawImage(im,0,0,c.width,c.height);res(c.toDataURL("image/jpeg",.72))};im.onerror=()=>res(src);im.src=src})}
+function status(){const a=!!db,b=lsOK(),n=Object.keys(mem).length,el=$("#pst");if(!el)return;el.textContent=(a||b)?"Simpanan kekal tersedia ("+[a?"IndexedDB":"",b?"localStorage":""].filter(Boolean).join(" + ")+"). "+n+" gambar kad dikunci. Eksport sandaran sesekali untuk keselamatan.":"Simpanan kekal TIDAK tersedia dalam Canvas ini. Tekan Eksport rujukan terkunci selepas kunci, dan Import semula selepas buka app."}
+const _dp=dbPut;
+dbPut=function(k,v){_dp(k,v);const o=lsRead();o[k]=v;lsWrite(o)};
+const _dd=dbDel;
+dbDel=function(k){_dd(k);const o=lsRead();delete o[k];lsWrite(o)};
+const _da=dbAll;
+dbAll=async function(){await _da();const o=lsRead();Object.keys(o).forEach(k=>{if(!mem[k])mem[k]=o[k]});status();(async()=>{for(const k of Object.keys(mem)){if(String(mem[k]).length>LIM){const s=await thumb(mem[k]);dbPut(k,s)}}status();try{render()}catch(e){}})()};
+const _ac=allCodes;
+allCodes=function(){const a=_ac(),f=$("#onlyLock");return f&&f.checked?a.filter(c=>mem[c]):a};
+$("#onlyLock").onchange=render;
+$("#lockbtn").textContent="Kunci sebagai gambar kad";
+$("#lockbtn").onclick=async()=>{if(!lastImg)return;const s=await thumb(lastImg);dbPut(cur,s);$("#msg").textContent="Dikunci sebagai gambar kad "+cur+". Hanya untuk dipilih di senarai, tidak dihantar ke penjanaan.";refresh();render();status();if(!db&&!lsOK())backup()};
+status();
+mark();
+
+// ===== v1.0 Jana Auto (pengarah seni) =====
+const TMODELS=["gemini-2.5-flash","gemini-flash-latest","gemini-2.5-flash-preview-09-2025"]; // model teks; tukar jika Google menukar nama
+const TAIL=" The headline text is exactly: {H}. No other words, numbers or symbols anywhere in the image. Key elements inside the central 3:4 safe zone, one clear focal point, legible at thumbnail size. No logos or brands, no real data or news claims. Do not add any text about how the image was made.";
+const DIR=`You are a senior thumbnail and poster art director. From the topic title, the optional direction note and the attached photos (if any), invent ONE completely new, specific visual concept and write a complete English image-generation prompt for it. Do not reuse a generic template. Rules:
+1) Transform the whole scene around the topic: choose a specific, surprising but fitting setting, props and atmosphere (a 360-degree change of surroundings), never a plain background.
+2) Build depth in layers: background, midground, foreground, with atmosphere (fog, dust, light beams, particles, reflections) as the topic allows.
+3) Name the lighting (key light, rim light, colour temperature contrast) and a colour grade with three tonal zones (shadows, midtones, highlights) plus one or two accent colours. List the palette with colour names.
+4) Pick headline typography and treatment that fits the topic (material, weight, outline, effect). The headline is short and very large; place it deliberately and never cover the face.
+5) One focal point, strong contrast, readable at thumbnail size, key elements inside the central 3:4 safe zone. Vary the composition; do not always centre everything.
+6) Photos: attached photos are the user's real photographs. A photo marked LOCKED: the person's face, hair, body and whole outfit stay exactly as supplied, so design the scene, props, light and colours so that this exact outfit looks natural and intentional in it; never ask for the outfit to change. A photo marked EDIT: may be restyled to fit the concept. Say where each photo is placed (for example hero subject, or inside a framed portrait).
+7) No logos, brand names, real people, news claims, watermarks, or any text about how the image was made. The only text in the image is the headline. In the prompt write the placeholder {H} exactly once where the headline text belongs; never write the headline words yourself.
+Return ONLY JSON with these keys: konsep (one short Malay sentence naming the idea), suasana (Malay, the setting and atmosphere), mood (Malay, 2-3 words), palet (English, named colours and their roles), susun_atur (English, where the headline, subject and background elements sit), prompt (English, 150-260 words, the complete image prompt, without the safe-zone and no-other-text sentences, which are added automatically).`;
+let AUTOC=null;
+async function autoDirect(){
+  const msg=$("#msg"),H=$("#hl").value.trim();
+  if(!H){msg.textContent="Tulis tajuk dahulu, kemudian tekan Jana JSON.";return false}
+  msg.textContent="Pengarah seni sedang berfikir… (10–30 saat)";$("#mk").disabled=true;
+  try{
+    const q=PL.find(x=>x.p===plat),nt=$("#note").value.trim();
+    const t="Headline (exact text for the image): "+H+(STYLEHINT?"\nSTYLE (the main visual language: follow it for medium, materials, rendering and colour mood; still invent the scene around the headline topic): "+STYLEHINT:"")+"\nImage size: "+ratio+(q?"\nPlatform: "+q.n:"")+(nt?"\nExtra direction from the user: "+nt:"")+(extras.length?"\nAttached photos, in order: "+extras.map((s,i)=>"Photo "+(i+1)+" "+(EDIT.has(s)?"EDIT":"LOCKED")).join("; "):"\nNo photos attached; invent the subject too.");
+    const parts=[{text:DIR+"\n\n"+t}];
+    for(const s of extras){const d=await thumb(s,768),m=String(d).match(/^data:(.+?);base64,(.*)$/);if(m)parts.push({inlineData:{mimeType:m[1],data:m[2]}})}
+    const key=localStorage.getItem("thkey")||"";
+    let j=null,err="";
+    for(const tm of TMODELS){
+      const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${tm}:generateContent?key=${key}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{role:"user",parts}],generationConfig:{responseMimeType:"application/json",temperature:1}})});
+      const x=await r.json();
+      if(r.ok){j=x;break}
+      err=(x.error&&x.error.message)||String(r.status);
+      if(r.status!==404&&!/not found|not supported/i.test(err))break;
+    }
+    if(!j)throw new Error(err||"tiada jawapan");
+    const txt=(((j.candidates||[])[0]||{content:{parts:[]}}).content.parts||[]).filter(p=>p.text&&!p.thought).map(p=>p.text).join("");
+    let c;try{c=JSON.parse(txt.replace(/^\s*```(?:json)?/i,"").replace(/```\s*$/,"").trim())}catch(e){throw new Error("jawapan pengarah bukan JSON, cuba lagi")}
+    if(!c||typeof c.prompt!=="string"||c.prompt.length<40)throw new Error("konsep tiada prompt, cuba lagi");
+    R.AUTO={n:"Jana Auto",t:[H],m:c.mood||"",p:c.palet||"",s:c.susun_atur||"",l:c.suasana||"",up:0,pf:c.prompt+TAIL};
+    AUTOC=c;
+    $("#json").value=JSON.stringify(buildJSON("AUTO",true),null,2);
+    msg.textContent="Konsep: "+(c.konsep||"siap")+". Semak JSON, kemudian Jana gambar. Tekan Jana JSON lagi untuk konsep lain.";
+    $("#mk").disabled=false;return true;
+  }catch(e){msg.textContent="Gagal: "+e.message;$("#mk").disabled=false;return false}
+}
+const _bj2=buildJSON;
+buildJSON=function(code,full){
+  if(code==="AUTO"&&!R.AUTO)return {kod:"AUTO",nisbah:ratio,nota:"Tulis tajuk, letak foto (pilihan), tulis suasana dalam Arahan perubahan jika mahu, kemudian tekan Jana JSON. Pengarah seni akan reka konsep baru."};
+  const o=_bj2(code,full);
+  if(code==="AUTO"&&AUTOC){o.kategori="Jana Auto";o.konsep=AUTOC.konsep||"";if(o.kandungan)o.kandungan.suasana=AUTOC.suasana||""}
+  return o};
+function openAuto(){cur="AUTO";extras=[];lastImg=null;AUTOC=null;delete R.AUTO;$("#hl").value="";$("#view").hidden=false;$("#home").hidden=true;$("#vt").textContent="✨ Jana Auto · konsep baru ikut tajuk";$("#res").innerHTML="";$("#msg").textContent="";$("#note").value="";rebuild();refresh();window.scrollTo(0,0)}
+const _rf2=refresh;
+refresh=function(){_rf2();const A=cur==="AUTO";$("#autogo").hidden=!A;$("#mk").textContent=A?"1. Jana JSON (konsep auto)":"1. Jana JSON";$("#hl").placeholder=A?"Contoh: WORKOUT PAGI":"Biarkan kosong untuk tajuk contoh";if(A){$("#lockbtn").hidden=true;$("#lockbox").innerHTML="<small>Jana Auto: tiada gambar kad.</small>"}};
+const _mkh=$("#mk").onclick;
+$("#mk").onclick=function(){if(cur==="AUTO")return autoDirect();return _mkh.apply(this,arguments)};
+const _gen=generate;
+generate=async function(){if(cur==="AUTO"&&!R.AUTO){$("#msg").textContent="Tekan Jana JSON dahulu supaya pengarah seni reka konsep.";return}return _gen.apply(this,arguments)};
+$("#gen").onclick=generate;
+$("#autogo").onclick=async()=>{if(await autoDirect())await generate()};
+$("#autoBtn").onclick=openAuto;
+// ===== v1.1 Galeri 100 gaya kreatif =====
+const GR=["Lukisan","Kartun","3D & Mainan","Retro","Fantasi","Digital","Foto","Poster","Nusantara","Eksperimen"];
+const ST=[
+["Impressionist painting","loose visible brushstrokes, dappled sunlight, soft blended colour, painterly outdoor light"],
+["Acrylic painting","bold flat acrylic colour blocks with visible brush ridges, thick opaque paint, vivid saturated palette"],
+["Watercolour","translucent watercolour washes, bleeding edges, paper grain, white paper left as highlights, soft pastel palette"],
+["Oil portrait","classical oil painting, rich glazed shadows, warm museum lighting, canvas craquelure, dramatic chiaroscuro"],
+["Ink wash","sumi-e black ink wash on rice paper, flowing brush, generous empty space, one small red accent"],
+["Chalk pastel","soft chalk pastel on toned paper, smudged gradients, velvety texture, dreamy colour"],
+["Gouache storybook","flat matte gouache shapes, picture-book charm, limited warm palette, gentle paper texture"],
+["Pop art","halftone dots, thick black outlines, flat primary colours, bold graphic contrast, comic-print look"],
+["Art nouveau","flowing organic lines, ornamental floral frame, muted gold and sage, elegant poster composition"],
+["Stained glass","luminous coloured glass panes separated by dark lead lines, backlit glow, cathedral window composition"],
+["Anime","crisp cel-shaded anime illustration, expressive eyes, dynamic angle, vivid sky gradient, speed lines and sparkles"],
+["Manga hitam putih","black and white manga page look, screentone shading, empty speech bubbles, dramatic panel layout"],
+["Chibi","cute chibi proportions, big head, tiny body, pastel colours, glossy sticker-like finish"],
+["Dongeng lukisan tangan","soft hand-painted fantasy animation backgrounds, lush clouds, gentle wind, warm nostalgic light"],
+["Kartun vintage","1930s rubber-hose cartoon, round limbs, grainy monochrome with one spot colour, bouncy motion lines"],
+["Komik adiwira","bold comic book inks, dynamic foreshortening, halftone shading, action burst shapes, primary colours"],
+["Karikatur","exaggerated caricature, oversized head, features kept recognisable, playful marker-and-watercolour finish"],
+["Webtoon","clean vertical webtoon colouring, soft gradients, delicate line art, romantic pastel mood"],
+["Game cel-shaded","stylised cel-shaded video-game key art, thick rim light, saturated heroic palette, epic skyline"],
+["Maskot vektor","flat vector mascot style, thick rounded shapes, limited bright palette, friendly sticker design"],
+["Claymation","handmade plasticine claymation, fingerprint textures, stop-motion set, warm miniature lighting"],
+["Felted miniature","needle-felted wool figures, fuzzy fibres, tiny handmade set, shallow depth of field"],
+["Avatar 3D","soft 3D animated character, smooth skin, large expressive eyes, glossy hair, cinematic soft lighting"],
+["Vinyl toy","collectible vinyl designer toy, glossy plastic, simple shapes, studio product shot, pastel backdrop"],
+["Bobblehead","bobblehead figure, oversized head on a small body, glossy paint, spring neck, desk-shelf scene"],
+["Dunia blok mainan","a world built from interlocking plastic toy bricks, glossy studs, playful scale, bright primary colours"],
+["Model kit","unpainted plastic model kit on green sprue frames, numbered parts, instruction-sheet vibe, cutting-mat table"],
+["Plush toy","soft plush stuffed toy, visible stitching, fuzzy fabric, cosy bedroom light"],
+["Diorama tilt-shift","tiny miniature diorama, strong tilt-shift blur, toy-like colours, overhead angle"],
+["Origami & kertas","folded paper craft, crisp creases, layered paper shapes, soft shadows, bright paper colours"],
+["Potret 70-an","1970s film portrait, warm amber grain, soft focus, flared collars, sunlit wood-panel and sunset tones"],
+["Kilas balik 80-an","1980s snapshot, neon-lit, big hair and bold windbreakers, pastel and teal palette, soft flash"],
+["Digikam Y2K","early-2000s compact digital camera look, direct flash, slight blur, glossy pink and silver, sparkles"],
+["VHS","VHS tape look, scanlines, tracking glitches, washed colour bleed, soft analogue noise"],
+["Polaroid","instant film frame, faded colour, soft vignette, white border, casual snapshot"],
+["Jalur filem","35mm film strip frames with sprocket holes, warm grain, a sequence of poses in one image"],
+["Arked 16-bit","16-bit arcade game scene, chunky pixel art, parallax city background, bright palette, fighting-game pose"],
+["Piksel 8-bit","8-bit pixel art, limited colour palette, blocky sprites, retro console screen glow"],
+["Vaporwave","vaporwave aesthetic, pink-purple gradient sky, marble bust, palm silhouettes, grid floor, surreal calm"],
+["Poster pelancongan vintage","vintage travel poster, flat painted shapes, bold sun rays, limited retro palette, grand scenic view"],
+["Kad tarot","ornate tarot card frame, symbolic celestial motifs, gold foil lines, mystical illustration, deep jewel colours"],
+["Akhbar fantasi","aged newspaper front page, sepia halftone photo, fantasy-themed layout, torn edges; body text shown only as abstract grey lines, the headline is the only readable text"],
+["Buku dongeng","storybook illustration, gentle ink lines with watercolour, enchanted cottage, whimsical details"],
+["Manuskrip zaman pertengahan","illuminated medieval manuscript, gold leaf borders, parchment, rich pigments, decorative initials without readable text"],
+["Hutan ajaib","enchanted glowing forest, giant mushrooms, fireflies, mist, teal and violet light"],
+["Nebula kosmik","cosmic nebula portrait, star dust, galaxy colours, glowing outline, deep-space depth"],
+["Peta bintang","celestial star-chart illustration, constellation lines, gold on midnight blue, vintage astronomy"],
+["Steampunk","brass gears, copper pipes, goggles, airship sky, warm smoky sepia with brass highlights"],
+["Patung marmar","classical marble statue, carved folds, museum pedestal, dramatic side light, cool stone texture"],
+["Buku pop-up","paper pop-up book scene, layered cut-out cardboard, depth shadows, whimsical fairytale"],
+["Cyberpunk neon","rainy neon megacity, magenta and cyan reflections, holographic signs, dense futuristic atmosphere"],
+["Hologram","translucent glowing hologram projection, scanlines, blue-cyan light, dark tech room"],
+["Glitch","RGB split, digital glitch slices, datamosh, high-contrast electric colours"],
+["Cetak biru","blue blueprint paper, white technical line drawing, dimension marks, grid, schematic detail"],
+["Keratan rentas","cutaway cross-section illustration, callouts drawn as plain lines without text, clean technical rendering, inner parts revealed"],
+["HUD futuristik","sci-fi heads-up display overlay, thin glowing circles, data ticks without text, dark glass, cyan accents"],
+["Low-poly","low-poly faceted 3D, flat triangular shading, pastel gradient, clean geometric landscape"],
+["Wireframe","glowing wireframe mesh over a dark void, vertex dots, scanlines, neon green or cyan"],
+["Logam cecair","liquid chrome, mirror metal, flowing blobs, iridescent reflections, studio HDR lighting"],
+["Voxel","voxel cube art, tiny cubic world, isometric view, bright toy colours"],
+["Photo booth","photo booth strip, black-and-white four-frame candid, flash, grainy, playful expressions"],
+["Kilat malam","night-time direct flash snapshot, harsh flash falloff, dark background, candid party look"],
+["Bawah air","underwater scene, sunbeams through the surface, floating hair and fabric, aqua-teal caustics, dreamy"],
+["Pandangan udara","aerial top-down view, drone-style, long shadows, geometric patterns of the ground"],
+["Golden hour","warm golden-hour film photo, long glowing backlight, lens flare, soft haze"],
+["Noir hitam putih","high-contrast black-and-white noir, venetian blind shadows, smoke, dramatic spotlight"],
+["Double exposure","double exposure silhouette filled with landscape or city, soft gradient, ethereal blend"],
+["Makro embun","macro close-up, water droplets, extreme shallow depth, jewel-like bokeh, fresh colours"],
+["Editorial fesyen","high-fashion magazine editorial look, bold colour backdrop, sharp studio light, confident pose, no magazine text"],
+["Siluet matahari terbenam","dramatic silhouette against a vivid sunset gradient, minimal detail, wide open sky"],
+["Minimalis Swiss","Swiss-style minimal poster, grid layout, huge simple shapes, two colours plus white, lots of space"],
+["Bauhaus","Bauhaus geometry, circles triangles and squares, primary red-blue-yellow, diagonal composition"],
+["Risograph","risograph print, grainy two-tone overprint, misregistered ink, bold simple shapes"],
+["Kolaj zine","cut-and-paste zine collage, torn paper, tape, halftone photo cutouts, hand-drawn doodles"],
+["Pek pelekat","sticker sheet, die-cut white borders, glossy cute stickers arranged on a pastel backdrop"],
+["Koleksi pin","enamel pin collection, metal-rimmed glossy badges laid on soft felt, cute motifs"],
+["Tin koleksi","vintage collector's tin box, embossed metal, tiny curated trinkets inside, shelf-top macro"],
+["Tanda neon","glowing neon tube sign on a dark brick wall, tube-light glow, subtle reflection"],
+["Poster tipografi","typographic poster, oversized stacked letters, strong colour contrast, expressive layout, the headline is the only text"],
+["Gradien mesh","smooth mesh gradient background, soft blurred colour blobs, grainy finish, modern and clean"],
+["Batik","traditional batik pattern, wax-resist lines, indigo and brown palette, ornamental border"],
+["Wayang kulit","shadow puppet theatre, intricate perforated leather figures, warm lamp backlight, amber glow"],
+["Songket emas","songket gold-thread woven pattern, deep maroon or green silk, shimmering metallic motifs"],
+["Kampung cat air","tropical kampung watercolour, stilt house, coconut palms, paddy field, soft morning mist"],
+["Ukiran kayu","carved wood panel, intricate Malay floral relief, warm teak tones, raking light"],
+["Seni khat","Islamic calligraphy art, flowing gold lettering shapes, geometric arabesque frame, deep emerald; decorative strokes only, no extra readable words"],
+["Pasar malam","night market glow, string bulbs, steam from food stalls, warm lantern colours, lively blurred crowd"],
+["Layang-layang","colourful traditional kites over a golden paddy field, wind, big sky, cheerful"],
+["Suasana Raya","festive Hari Raya mood, ketupat motifs, pelita oil lamps, green-gold palette, warm family glow"],
+["Peta lama maritim","antique sepia nautical map, sea monsters, compass rose, ships, ink on parchment, no readable labels"],
+["Tulisan tangan","handwritten notebook look, doodled arrows and underlines drawn around the subject, paper texture, the headline is the only readable text"],
+["Contengan","loose scribble doodle drawn over the subject, playful marker lines, white background, hand-drawn energy"],
+["Lakaran pensel","graphite pencil sketch, cross-hatching, smudge, visible construction lines, paper tooth"],
+["Sulaman","embroidery patch, dense stitched thread texture, raised satin stitch, fabric backing"],
+["Mozek","mosaic of tiny coloured tiles, grout lines, vivid glass tesserae"],
+["Tiup belon","inflatable balloon-like glossy puffy 3D forms, soft highlights, pastel studio"],
+["Cat cair","melting liquid paint dripping, glossy swirls, marbled colour flow, high saturation"],
+["Dunia gula-gula","candy land, lollipops, gummy textures, glossy sugar colours, sweet pastel sky"],
+["Seni makanan","a scene built from food and snacks, edible landscape, macro studio lighting, appetising colours"],
+["Serpihan cermin","mirror shards kaleidoscope, fractured reflections, prism rainbow light, surreal"]
+];
+let curStyle=-1,gcat=-1,STYLEHINT="";
+const gst=document.createElement("style");
+gst.textContent="#gcats{display:flex;gap:6px;overflow-x:auto;padding:4px 0 8px}#gcats button{white-space:nowrap;background:#1b2338;padding:6px 12px;font-size:13px}#gcats button.on{background:#2b6cff}#gal{display:grid;grid-template-columns:1fr 1fr;gap:10px}.gt{position:relative;height:150px;border-radius:16px;overflow:hidden;cursor:pointer;display:flex;align-items:flex-end}.gt img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.gt b{position:relative;z-index:1;color:#fff;font-size:14px;padding:10px;text-shadow:0 1px 4px #000c;width:100%;background:linear-gradient(transparent,#0009)}";
+document.head.appendChild(gst);
+function renderGal(){
+  $("#gcats").innerHTML=`<button data-i="-1" class="${gcat<0?"on":""}">Semua</button>`+GR.map((c,i)=>`<button data-i="${i}" class="${gcat===i?"on":""}">${c}</button>`).join("");
+  document.querySelectorAll("#gcats button").forEach(b=>b.onclick=()=>{gcat=+b.dataset.i;renderGal()});
+  $("#gal").innerHTML=ST.map((s,i)=>({s,i})).filter(x=>gcat<0||Math.floor(x.i/10)===gcat).map(x=>{const im=mem["G"+x.i],h=(x.i*37)%360;return `<div class="gt" data-i="${x.i}" style="background:linear-gradient(135deg,hsl(${h},60%,35%),hsl(${(h+50)%360},65%,22%))">${im?`<img src="${im}">`:""}<b>${x.s[0]}</b></div>`}).join("");
+  document.querySelectorAll(".gt").forEach(e=>e.onclick=()=>openStyle(+e.dataset.i));
+}
+function openStyle(i){openAuto();curStyle=i;STYLEHINT=i>=0?ST[i][0]+": "+ST[i][1]:"";$("#vt").textContent=i>=0?"✨ "+ST[i][0]:"✨ Jana Auto · konsep bebas";refresh()}
+const _rf3=refresh;
+refresh=function(){_rf3();if(cur==="AUTO"&&curStyle>=0){const k="G"+curStyle,im=mem[k];$("#lockbox").innerHTML=im?`<img src="${im}"><button id="unlock">Buang contoh</button>`:"<small>Belum ada gambar contoh untuk gaya ini. Selepas jana, tekan Kunci sebagai gambar contoh.</small>";if($("#unlock"))$("#unlock").onclick=()=>{dbDel(k);refresh();renderGal()};$("#lockbtn").hidden=!lastImg;$("#lockbtn").textContent="Kunci sebagai gambar contoh"}else if($("#lockbtn"))$("#lockbtn").textContent="Kunci sebagai gambar kad"};
+const _lb=$("#lockbtn").onclick;
+$("#lockbtn").onclick=async function(){if(cur==="AUTO"&&curStyle>=0){if(!lastImg)return;const s=await thumb(lastImg);dbPut("G"+curStyle,s);$("#msg").textContent="Dikunci sebagai gambar contoh gaya "+ST[curStyle][0]+".";refresh();renderGal();status()}else return _lb.apply(this,arguments)};
+const _bk=$("#back").onclick;
+$("#back").onclick=function(){_bk.apply(this,arguments);renderGal()};
+$("#autoBtn").onclick=()=>openStyle(-1);
+renderGal();
+// ===== v1.2 Kamus Gaya (A-Z bacaan) =====
+const KURL=["https://raw.githubusercontent.com/zarouqs-rgb/thumbnail-style-library/main/kamus.json","https://cdn.jsdelivr.net/gh/zarouqs-rgb/thumbnail-style-library@main/kamus.json"];
+let KD={"v":1,"g":[{"n":"Aliran seni","e":[["Renaissance","lukisan klasik Itali 1400-an, realistik, perspektif dalam, wajah tenang"],["Baroque","dramatik, terang-gelap kuat, gerakan dan emosi besar"],["Rococo","halus, hiasan melengkung, warna pastel manis dan mewah"],["Neoclassicism","bentuk Yunani-Rom yang kemas, tenang dan bergaris bersih"],["Romanticism","alam megah, emosi kuat, langit dramatik"],["Realism","menggambarkan kehidupan biasa seadanya tanpa hiasan"],["Impressionism","sapuan berus longgar, menangkap kesan cahaya"],["Post-Impressionism","warna berani dan sapuan ekspresif selepas Impressionism"],["Pointillism","gambar dibina daripada titik-titik warna kecil"],["Expressionism","warna dan bentuk dicondongkan untuk meluahkan perasaan"],["Fauvism","warna liar tak semula jadi, cerah dan rata"],["Cubism","objek dipecah jadi bentuk geometri dari pelbagai sudut"],["Futurism","kelajuan, mesin dan gerakan dengan garis dinamik"],["Surrealism","adegan pelik seperti mimpi, logik dibengkokkan"],["Dadaism","kolaj kacau dan tak masuk akal yang menentang peraturan"],["Abstract Expressionism","cat besar, percikan dan emosi tanpa bentuk nyata"],["Pop Art","warna terang, titik halftone, budaya popular"],["Op Art","corak hitam putih yang menipu mata"],["Minimalism","sedikit unsur, banyak ruang kosong"],["Art Deco","geometri mewah 1920-an, emas dan hitam, simetri"],["Art Nouveau","garis melengkung organik, bunga dan sulur"],["Symbolism","imej misteri penuh makna tersirat"],["Constructivism","blok geometri, diagonal tegas, merah dan hitam"],["Suprematism","bentuk geometri tulen terapung atas latar kosong"],["Pre-Raphaelite","butiran halus, warna permata, adegan legenda"],["Gothic art","lengkung tajam, suram, kaca berwarna ala katedral"],["Byzantine","ikon berlatar emas, wajah rata dan khidmat"],["Mannerism","tubuh dipanjangkan, pose melengkung, warna ganjil"]]},{"n":"Media & teknik","e":[["Oil painting","cat minyak tebal, warna kaya, kilauan hangat"],["Watercolour","cat air lut sinar, tepi meresap, kertas bertekstur"],["Gouache","cat opak matte, warna rata dan pekat"],["Acrylic painting","cat akrilik berani, warna pekat, bekas berus nampak"],["Ink drawing","lukisan dakwat garis tegas, hitam pekat"],["Charcoal","arang hitam lembut, bayang kabur dan kasar"],["Pastel","kapur pastel lembut, warna berbedak dan mimpi"],["Graphite pencil","lakaran pensel kelabu, hasil teduh halus"],["Colour pencil","pensel warna berlapis, garisan halus dan hangat"],["Marker illustration","pen penanda berwarna, garis berani gaya reka"],["Linocut","cetakan ukir lino, kontras tinggi, garis kasar"],["Woodcut","cetakan blok kayu, urat kayu dan garis tegas"],["Etching","goresan halus pada logam, hatching rapat"],["Screen print","cetakan skrin warna rata berlapis, tepi bersih"],["Risograph","cetakan dua warna berbutir, dakwat tak sejajar"],["Collage","tampalan kertas dan gambar potong bercampur"],["Papercut","lapisan kertas dipotong, bayang dalam"],["Mosaic","kepingan jubin kecil disusun jadi gambar"],["Fresco","lukisan dinding kapur, warna pudar kuno"],["Encaustic","cat lilin panas, tekstur tebal berkilat"],["Airbrush","semburan halus, kecerunan licin"],["Digital painting","lukisan digital, berus lembut dan cahaya kaya"],["Vector illustration","bentuk rata bersih dan skala tajam"],["Pixel art","kotak piksel kecil, palet terhad"]]},{"n":"Ilustrasi & kartun","e":[["Anime","animasi Jepun, mata besar, warna terang, garis tajam"],["Manga","komik Jepun hitam putih dengan teduhan titik"],["Chibi","watak comel kepala besar badan kecil"],["Kawaii","comel gaya Jepun, pastel, bulat dan manis"],["Webtoon","komik menegak berwarna, gradien lembut"],["Comic book","komik barat, dakwat tebal, titik halftone"],["Cel shading","teduhan rata bertingkat seperti kartun"],["Rubber hose cartoon","kartun 1930-an, anggota bulat melenting"],["Flat illustration","bentuk rata tanpa bayang, warna ringkas"],["Isometric illustration","pandangan serong 3D tanpa perspektif, kemas"],["Children's book illustration","ilustrasi buku kanak-kanak, mesra dan berwarna"],["Editorial illustration","ilustrasi konsep untuk majalah, bijak dan berani"],["Concept art","lukisan konsep filem atau permainan, suasana megah"],["Line art","hanya garisan bersih tanpa warna isi"],["Caricature","wajah dibesarkan dan dilucukan tapi masih dikenali"],["Vector mascot","maskot bulat tebal garis, mesra"],["Cutout animation","potongan kertas bergerak, tepi kasar"],["Pulp cover","kulit novel lama, warna garang dan dramatik"],["Tattoo flash","reka tatu tradisional, garis tebal warna terhad"],["Graffiti","seni jalanan semburan cat, warna berani"]]},{"n":"3D & digital","e":[["3D render","imej 3D bersih, pencahayaan studio"],["Low poly","3D berfaset segi tiga, teduhan rata"],["Voxel","dunia kotak kubus kecil"],["Claymation","tanah liat plastisin, jejak jari, stop-motion"],["Soft 3D character","watak 3D lembut, kulit licin, mata besar"],["Isometric 3D","adegan 3D diorama bersudut tetap"],["Hyperreal 3D","3D sangat nyata, butiran dan pantulan tinggi"],["Glassmorphism","kaca beku lutsinar dengan kabur latar"],["Neumorphism","bentuk timbul lembut sewarna latar"],["Claymorphism","bentuk bulat gemuk lembut seperti tanah liat"],["Skeuomorphism","tiruan bahan sebenar: kulit, logam, kaca"],["Holographic","kilat pelangi hologram berubah warna"],["Iridescent","warna berubah mengikut sudut seperti gelembung sabun"],["Liquid chrome","logam cecair cermin berkilat"],["Wireframe","jaringan garisan 3D bercahaya"],["Glitch art","kerosakan digital, pecahan warna RGB"],["Generative art","corak algoritma, bentuk berulang matematik"]]},{"n":"Zaman & nostalgia","e":[["1920s Art Deco","glamor Jazz Age, emas, geometri, simetri"],["1950s retro","diner Amerika, warna pastel, iklan lama"],["Atomic age","bentuk atom dan roket, optimis, retro-futuristik"],["Mid-century modern","reka bentuk 1950-60, garis bersih, warna tanah"],["1960s psychedelic","warna menyala, corak berpusar, huruf melengkung"],["1970s","warna coklat jingga, bunga besar, butiran filem"],["1980s","neon, geometri, rambut besar, pastel dan teal"],["1990s","grunge dan pop, kamera pakai buang, warna jernih"],["Y2K","awal 2000-an, perak berkilat, merah jambu, kamera digital"],["Vaporwave","merah jambu-ungu, patung marmar, nostalgia 80-90-an"],["Synthwave","matahari neon, grid, jalan malam retro-futuristik"],["Memphis design","bentuk geometri riang, corak liar 1980-an"],["VHS","imej pita video lama, garisan imbasan, warna bocor"],["Polaroid","gambar segera pudar, bingkai putih"],["Cassette futurism","masa depan versi 80-an, butang dan skrin besar"],["Frutiger Aero","awal 2000-an, kaca, air, langit biru, gelembung"],["Victorian","hiasan berat, sepia, ukiran dan renda"],["Medieval","manuskrip dan perisai, emas dan kulit"]]},{"n":"Estetika popular","e":[["Cyberpunk","bandar neon hujan, teknologi dan kemiskinan"],["Solarpunk","masa depan hijau, tumbuhan dan tenaga suria"],["Steampunk","gear loyang, wap, lanun udara"],["Dieselpunk","mesin berat 1940-an, besi dan minyak"],["Cottagecore","kehidupan desa lembut, bunga, roti, kain linen"],["Dark academia","perpustakaan lama, coklat tua, buku dan tweed"],["Light academia","buku, cahaya lembut, krim dan pastel"],["Goblincore","hutan, kulat, lumut, benda pelik"],["Fairycore","sayap, kilau, bunga, dongeng halus"],["Witchcore","herba, bulan, kristal, suasana mistik"],["Grunge","koyak, kotor, gelap, tekstur kasar"],["Kidcore","warna terang kanak-kanak, stiker, mainan"],["Weirdcore","aneh, kabur, tak selesa tapi menarik"],["Dreamcore","suasana mimpi nostalgia, kabur dan pelik"],["Liminal space","tempat kosong senyap, lampu malap, rasa pelik"],["Wabi-sabi","kecantikan yang tak sempurna, tanah dan usang"],["Gorpcore","pakaian luar bandar dan gunung, warna tanah"],["Maximalism","penuh sesak, corak berlapis, warna ramai"]]},{"n":"Fotografi","e":[["Portrait photography","potret wajah, latar kabur"],["Street photography","detik jalanan semula jadi dan spontan"],["Documentary","foto jujur menceritakan peristiwa sebenar"],["Fashion editorial","majalah fesyen, pose berani, latar bersih"],["Macro","jarak dekat luar biasa, butiran kecil besar"],["Aerial view","pandangan dari udara, corak darat"],["Long exposure","pendedahan panjang, cahaya meleret, air lembut"],["Tilt-shift","kabur atas bawah, seperti model mini"],["Bokeh","bulatan cahaya kabur di latar"],["Black and white","hitam putih penuh kontras dan tekstur"],["Sepia","coklat kekuningan seperti foto lama"],["Silhouette","bentuk gelap berlatar langit terang"],["Double exposure","dua gambar bertindih bersatu lembut"],["High key","terang, sedikit bayang, bersih"],["Low key","gelap, bayang dalam, cahaya kecil dramatik"],["Flat lay","susunan benda dari atas di permukaan rata"],["Fisheye","lensa mata ikan, lengkungan besar"],["Film grain","butiran filem analog, warna hangat"],["Infrared","tumbuhan merah jambu putih, langit gelap pelik"],["Light painting","lukis dengan cahaya semasa pendedahan panjang"],["Underwater photography","bawah air, sinar menembus, biru kehijauan"],["Astrophotography","bintang, galaksi dan langit malam"],["Product photography","produk di studio, cahaya bersih dan tajam"],["Food photography","makanan menyelerakan, cahaya lembut, butiran segar"]]},{"n":"Cahaya & warna","e":[["Golden hour","cahaya emas hangat waktu matahari rendah"],["Blue hour","biru dalam sebelum subuh atau selepas senja"],["Rim light","cahaya tepi menerangi bentuk"],["Backlight","cahaya dari belakang, halo dan silau"],["Volumetric light","sinar berkabus nampak di udara"],["Chiaroscuro","kontras terang gelap kuat ala lukisan klasik"],["Rembrandt lighting","segi tiga cahaya di pipi, dramatik lembut"],["Neon lighting","cahaya neon magenta dan sian"],["Soft box light","cahaya lembut meluas, bayang halus"],["Hard light","cahaya keras, bayang tajam"],["Candlelight","cahaya lilin oren hangat dan malap"],["Bioluminescent","cahaya hidupan bercahaya biru-hijau dalam gelap"],["Monochrome","satu warna dengan pelbagai kecerahan"],["Duotone","dua warna sahaja, kontras kuat"],["Complementary colours","warna bertentangan seperti biru dan jingga"],["Analogous colours","warna berjiran harmoni seperti biru ke hijau"],["Pastel palette","warna lembut berbedak"],["Neon palette","warna menyala bercahaya"],["Earth tones","coklat, hijau lumut, krim semula jadi"],["Teal and orange","warna filem: bayang biru kehijauan, kulit jingga"],["Muted desaturated","warna pudar tenang"],["Vibrant saturated","warna pekat dan menyerlah"]]},{"n":"Reka grafik & poster","e":[["Swiss style","grid kemas, huruf sans-serif, ruang bersih"],["Bauhaus","geometri asas dan warna primer, fungsi dahulu"],["Brutalism","blok kasar, huruf tebal, tanpa hiasan"],["Neo-brutalism","warna terang, garis hitam tebal, bayang keras"],["Flat design","bentuk rata dan warna ringkas"],["Bento grid","kotak bersusun kemas seperti bekas bento"],["Maximalist graphic","padat, warna berlapis, banyak elemen"],["Retro poster","poster lama, warna terhad, bentuk rata"],["Vintage travel poster","poster pelancongan lama, matahari dan pemandangan"],["Psychedelic poster","huruf melengkung dan warna menyala 60-an"],["Constructivist poster","diagonal, merah hitam, blok tebal"],["Typographic poster","huruf jadi imej utama"],["Halftone","titik cetakan besar kecil membentuk imej"],["Grainy gradient","kecerunan berbutir moden"],["Sticker design","reka stiker bertepi putih, comel"],["Badge and emblem","lambang bulat atau perisai, bingkai kemas"],["Zine collage","tampalan gaya majalah buatan sendiri"],["Infographic style","ikon, carta dan blok maklumat tersusun"],["Kinetic typography","huruf nampak bergerak, melengkung dan meluncur"]]},{"n":"Tipografi","e":[["Serif","huruf berkaki klasik, elegan"],["Sans-serif","huruf tanpa kaki, bersih dan moden"],["Slab serif","kaki segi empat tebal, kukuh"],["Script","tulisan bersambung mengalir"],["Brush lettering","huruf sapuan berus kering, bertenaga"],["Blackletter","huruf Gothic tebal berpintal"],["Graffiti lettering","huruf jalanan membentuk bulatan"],["Neon sign lettering","huruf tiub neon bercahaya"],["Chrome 3D type","huruf 3D logam berkilat"],["Inflatable type","huruf mengembang seperti belon"],["Pixel font","huruf kotak piksel"],["Stencil","huruf dengan jambatan terputus seperti cetakan semburan"],["Handwritten","tulisan tangan tak sempurna"],["Calligraphy","seni tulisan halus berhias"],["Khat and Jawi","tulisan khat Arab dan Jawi berhias"],["Bubble type","huruf bulat gemuk 70-an"],["Art Deco type","huruf tinggi bergeometri mewah"],["Monospace","huruf selebar sama seperti terminal"],["Embroidered type","huruf sulaman benang"],["Cut paper type","huruf potongan kertas bertindih"]]},{"n":"Budaya dunia","e":[["Ukiyo-e","cetakan blok kayu Jepun, garis jelas, warna rata"],["Sumi-e","lukisan dakwat Jepun, ruang kosong, minimal"],["Chinese gongbi","lukisan China halus, garis teliti dan warna lembut"],["Chinese ink landscape","gunung berkabus dengan dakwat hitam"],["Mughal miniature","lukisan kecil India, warna permata, emas"],["Madhubani","corak halus India, bunga dan haiwan, garis tebal"],["Persian miniature","lukisan Parsi halus, taman dan warna kaya"],["Islamic geometric","corak bintang dan poligon berulang"],["Arabesque","corak sulur melengkung berulang"],["Batik","corak lilin dan pewarna, motif tradisional"],["Wayang kulit","patung kulit berukir, bayang di skrin"],["Songket","benang emas bertenun atas sutera"],["Malay woodcarving","ukiran kayu Melayu, bunga dan sulur"],["Balinese painting","lukisan Bali padat, dewa, alam dan corak halus"],["Thai mural","dinding kuil Thai, emas dan merah, bentuk anggun"],["Aboriginal dot painting","titik-titik bermotif cerita tanah"],["African textile","corak kain Afrika, warna berani dan geometri"],["Day of the Dead","tengkorak berhias, bunga marigold, warna meriah"],["Scandinavian folk art","bunga ringkas, merah-biru, corak lembut"],["Celtic knotwork","simpulan berjalin tanpa penghujung"],["Greek vase painting","figura hitam atau merah atas tanah liat"],["Egyptian art","figura sisi, hieroglif, emas dan biru"]]},{"n":"Filem & genre","e":[["Film noir","hitam putih, bayang jalur, detektif dan asap"],["Cinematic anamorphic","jalur lebar, silau mendatar, warna filem"],["Horror","gelap, suram, rasa tak selamat"],["Gothic horror","rumah lama, kabus, kemewahan suram"],["Sci-fi","angkasa, teknologi dan masa depan"],["Fantasy epic","dunia ajaib besar, naga dan kota tinggi"],["Western","padang pasir, debu, matahari terik, koboi"],["Post-apocalyptic","bandar roboh, karat, alam menawan semula"],["Romance soft focus","fokus lembut, cahaya hangat, mesra"],["Action blockbuster","letupan, sudut rendah, warna kontras"],["Silent film","hitam putih bergetar, kad tajuk lama"],["Musical","pentas berwarna, gerak besar, cahaya sorotan"],["Spy thriller","bayang, bandar malam, nada sejuk"],["Superhero","pose heroik, jubah, cahaya dramatik"],["Samurai drama","ketenangan dan ketegangan, padang rumput, angin"],["Symmetrical pastel whimsy","simetri sempurna, pastel, suasana lucu kemas"],["Found footage","rakaman kamera tangan goyang dan kasar"],["Documentary style","jujur, semula jadi, kamera tangan"]]},{"n":"Bahan & tekstur","e":[["Paper craft","lipatan dan potongan kertas berwarna"],["Origami","lipatan kertas tajam, bentuk geometri"],["Felt","kain felt berbulu halus dijahit"],["Clay","tanah liat berjejak jari"],["Glass","kaca jernih, pantulan dan biasan"],["Metal","logam berkilat atau berkarat"],["Wood","urat kayu hangat dan bertekstur"],["Embroidery","sulaman benang timbul"],["Knitted and crochet","kait dan rajut berbulu lembut"],["Leather","kulit berlipat dan berjahit"],["Marble","batu marmar berurat, sejuk dan mewah"],["Concrete","konkrit kasar, kelabu dan industri"],["Ice","ais jernih berkilat dan retak"],["Smoke","asap melingkar lembut"],["Liquid paint","cat cair meleleh dan berpusar"],["Candy","gula-gula berkilat berwarna manis"],["Balloon","belon berkilat dan mengembang"],["Neon tube","tiub neon bercahaya"],["Wax","lilin lembut berkilat, titisan"],["Holographic foil","kerajang pelangi berkilat"],["Rust","karat dan usang, coklat oren"],["Gold leaf","kepingan emas nipis berkilau"]]}]},kcat=-1;
+const kst=document.createElement("style");
+kst.textContent=".kc{background:#1b2338;border-radius:12px;padding:10px 12px;margin:8px 0}.kc b{font-size:15px}.kc p{margin:4px 0 8px;color:#b8c0d8;font-size:13px}#kcats{display:flex;gap:6px;overflow-x:auto;padding:8px 0}#kcats button{white-space:nowrap;background:#1b2338;padding:6px 12px;font-size:13px}#kcats button.on{background:#2b6cff}#kview h3{margin:16px 0 4px}";
+document.head.appendChild(kst);
+const kv=document.createElement("div");kv.id="kview";kv.hidden=true;
+kv.innerHTML='<button class="alt" id="kback">← Kembali</button><h1>📖 Kamus Gaya</h1><p class="m">Baca nama dan maksud setiap gaya. Tekan Guna gaya ini untuk terus pakai dalam Jana Auto.</p><input type="search" id="kq" placeholder="Cari nama atau maksud gaya"><div id="kcats"></div><p id="kmsg" class="m"></p><div id="klist"></div><div id="kimp" hidden><b>Tampal JSON kamus</b><textarea id="ktxt" style="min-height:70px" spellcheck="false"></textarea><button class="alt" id="kok">Import kamus</button></div>';
+document.body.appendChild(kv);
+function renderK(){
+  if(!KD||!KD.g)return;
+  const q=$("#kq").value.trim().toLowerCase();
+  $("#kcats").innerHTML='<button data-i="-1" class="'+(kcat<0?"on":"")+'">Semua</button>'+KD.g.map((g,i)=>'<button data-i="'+i+'" class="'+(kcat===i?"on":"")+'">'+g.n+'</button>').join("");
+  document.querySelectorAll("#kcats button").forEach(b=>b.onclick=()=>{kcat=+b.dataset.i;renderK()});
+  let h="",n=0;
+  KD.g.forEach((g,gi)=>{if(kcat>=0&&kcat!==gi)return;const es=g.e.map((e,ei)=>({e,ei})).filter(x=>!q||(x.e[0]+" "+x.e[1]+" "+g.n).toLowerCase().includes(q));if(!es.length)return;h+="<h3>"+g.n+" ("+es.length+")</h3>"+es.map(x=>'<div class="kc"><b>'+x.e[0]+"</b><p>"+x.e[1]+'</p><button class="alt" data-g="'+gi+'" data-e="'+x.ei+'">Guna gaya ini</button></div>').join("");n+=es.length});
+  $("#klist").innerHTML=h||'<p class="m">Tiada padanan.</p>';
+  $("#kmsg").textContent=n+" gaya";
+  document.querySelectorAll("#klist button").forEach(b=>b.onclick=()=>openKStyle(KD.g[+b.dataset.g].e[+b.dataset.e]));
+}
+async function kLoad(){
+  if(KD&&KD.g)renderK();else $("#kmsg").textContent="Memuat kamus…";
+  for(const u of KURL){try{const r=await fetch(u,{cache:"no-cache"});if(!r.ok)continue;const d=await r.json();if(d&&d.g){KD=d;try{localStorage.setItem("thK",JSON.stringify(d))}catch(e){}$("#kimp").hidden=true;renderK();return}}catch(e){}}
+  if(!(KD&&KD.g)){$("#kmsg").textContent="Tidak dapat memuat kamus. Tampal JSON kamus di bawah.";$("#kimp").hidden=false}
+}
+function openKStyle(e){$("#kview").hidden=true;openAuto();curStyle=-1;STYLEHINT=e[0]+" ("+e[1]+")";$("#vt").textContent="✨ "+e[0];refresh()}
+$("#kamusBtn").onclick=()=>{$("#home").hidden=true;$("#kview").hidden=false;kLoad();window.scrollTo(0,0)};
+$("#kback").onclick=()=>{$("#kview").hidden=true;$("#home").hidden=false};
+$("#kq").oninput=renderK;
+$("#kok").onclick=()=>{try{const d=JSON.parse($("#ktxt").value);if(!d||!d.g)throw 0;KD=d;try{localStorage.setItem("thK",JSON.stringify(d))}catch(e){}$("#kimp").hidden=true;$("#ktxt").value="";renderK()}catch(e){$("#kmsg").textContent="JSON kamus tidak sah."}};
+(function(){const U=["https://raw.githubusercontent.com/zarouqs-rgb/thumbnail-style-library/main/resipi.json","https://cdn.jsdelivr.net/gh/zarouqs-rgb/thumbnail-style-library@main/resipi.json"];
+const st=s=>{const m=document.getElementById("rmsg");if(m)m.textContent=s};
+(async()=>{for(const u of U){try{const r=await fetch(u,{cache:"no-cache"});if(!r.ok)continue;const d=await r.json();let n=0;for(const k in d){if(/^TH\d+$/.test(k)&&d[k]&&d[k].n&&d[k].t){R[k]=d[k];n++}}if(n){try{render()}catch(e){}st("Resipi dimuat automatik: "+n+" kod.");return}}catch(e){}}
+st("Resipi automatik tidak dapat dimuat; guna Import resipi.")})()})();
+window.__TH_END=1;(function(){var v=document.getElementById("ver");if(v){v.textContent="v1.2.3 ✓ lengkap · 100 gaya · 272 kamus";v.style.background="#1f6b3a"}})();
+</script></body></html>

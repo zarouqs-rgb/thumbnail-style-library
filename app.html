@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="ms"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TH Library v1.2.5</title>
+<!DOCTYPE html><html lang="ms"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TH Library v1.2.6</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font:15px/1.4 system-ui,sans-serif;background:#0d111b;color:#e8ecf4;padding:12px;max-width:760px;margin:auto}
 h1{font-size:20px;margin:6px 0 10px}input,textarea,button,select{font:inherit}
@@ -12,7 +12,7 @@ button{background:#2b6cff;color:#fff;border:0;border-radius:10px;padding:10px 14
 #lockbox img,.exi img{width:90px;border-radius:8px}.exi{display:inline-block;position:relative;margin-right:6px}.exi button{position:absolute;right:0;top:0;padding:2px 8px;margin:0}
 .out{width:100%;border-radius:12px;margin-top:8px}label.f{display:inline-block;background:#262e45;border-radius:10px;padding:10px 14px;cursor:pointer}
 </style></head><body>
-<div id="home"><h1>TH Library <span id="ver" style="font-size:12px;font-weight:600;padding:3px 8px;border-radius:99px;background:#7a2b2b;color:#fff;vertical-align:middle;margin-left:6px">v1.2.5 ⚠ belum lengkap</span></h1><button id="autoBtn" style="width:100%;padding:14px;font-size:16px;margin:6px 0 10px">✨ Jana Auto bebas: reka konsep dari tajuk + foto</button><button id="kamusBtn" class="alt" style="width:100%;margin:0 0 8px">📖 Kamus Gaya: baca semua jenis gaya dan maksudnya</button><div id="gcats"></div><div id="gal"></div>
+<div id="home"><h1>TH Library <span id="ver" style="font-size:12px;font-weight:600;padding:3px 8px;border-radius:99px;background:#7a2b2b;color:#fff;vertical-align:middle;margin-left:6px">v1.2.6 ⚠ belum lengkap</span></h1><button id="autoBtn" style="width:100%;padding:14px;font-size:16px;margin:6px 0 10px">✨ Jana Auto bebas: reka konsep dari tajuk + foto</button><button id="kamusBtn" class="alt" style="width:100%;margin:0 0 8px">📖 Kamus Gaya: baca semua jenis gaya dan maksudnya</button><div id="gcats"></div><div id="gal"></div>
 <details id="old"><summary style="margin:12px 0;font-weight:700">Perpustakaan lama (1,060 kod TH)</summary><input type="search" id="q" placeholder="Cari kod, contoh TH5, atau nama gaya">
 <div id="cats"></div>
 <div class="row"><label><input type="checkbox" id="onlyDetail"> Hanya yang ada resipi terperinci</label><label><input type="checkbox" id="onlyLock"> Hanya yang dikunci</label><span id="cnt" class="m"></span><br><small id="pst"></small></div>
@@ -435,5 +435,53 @@ $("#kok").onclick=()=>{try{const d=JSON.parse($("#ktxt").value);if(!d||!d.g)thro
 const st=s=>{const m=document.getElementById("rmsg");if(m)m.textContent=s};
 (async()=>{for(const u of U){try{const r=await fetch(u,{cache:"no-cache"});if(!r.ok)continue;const d=await r.json();let n=0;for(const k in d){if(/^TH\d+$/.test(k)&&d[k]&&d[k].n&&d[k].t){R[k]=d[k];n++}}if(n){try{render()}catch(e){}st("Resipi dimuat automatik: "+n+" kod.");return}}catch(e){}}
 st("Resipi automatik tidak dapat dimuat; guna Import resipi.")})()})();
-window.__TH_END=1;(function(){var v=document.getElementById("ver");if(v){v.textContent="v1.2.5 ✓ lengkap · 115 gaya · 272 kamus";v.style.background="#1f6b3a"}})();
+// ===== v1.2.6 Pemikir Kata (AI cipta kata-kata) =====
+const PKDIR=`Anda penulis kata-kata (copywriter) Melayu Malaysia yang bijak, kelakar dan tajam observasinya. Tulis petikan ORIGINAL (bukan petikan terkenal, jangan salin kata orang) untuk poster media sosial. Peraturan:
+1) Bahasa Melayu santai Malaysia yang natural, mudah faham orang kampung dan bandar.
+2) Setiap petikan ialah satu ayat atau dua ayat pendek yang kuat, ada kelainan (twist, perbandingan tak dijangka, ironi halus atau kebenaran yang jujur), sedap dibaca lantang.
+3) Ikut jenis dan panjang yang diminta. Setiap petikan mesti berbeza sudut dan nada.
+4) Sopan: tiada ejekan kaum, agama atau orang sebenar, tiada politik berpihak, tiada lucah, tiada kata kesat, tiada ajakan berbahaya.
+5) Tiada nama jenama atau orang sebenar. Tiada emoji, tiada tanda petik di sekeliling petikan.
+Pulangkan HANYA JSON: {"kata":["petikan 1","petikan 2", ...]}`;
+const pkst=document.createElement("style");
+pkst.textContent=".pkc{background:#1b2338;border-radius:12px;padding:12px;margin:8px 0}.pkc p{margin:0 0 8px;font-size:16px;line-height:1.45}#pview select{width:100%;background:#161c2b;border:1px solid #2a3350;color:#e8ecf4;border-radius:10px;padding:10px;margin:4px 0}";
+document.head.appendChild(pkst);
+const pv=document.createElement("div");pv.id="pview";pv.hidden=true;
+pv.innerHTML='<button class="alt" id="pkback">← Kembali</button><h1>💡 Pemikir Kata</h1><p class="m">Tulis topik atau perasaan. AI cipta 8 kata-kata asli, pilih satu untuk terus jadi poster.</p><b>Topik</b><input type="text" id="pkt" placeholder="Contoh: duit, sabar, kawan, kerja hari Isnin"><b>Jenis</b><select id="pkj"><option>Lucu dan sindiran halus</option><option>Hikmah dan renungan</option><option>Motivasi semangat</option><option>Nasihat orang kampung</option><option>Pantun empat baris</option><option>Campuran semua jenis</option></select><b>Panjang</b><select id="pkl"><option value="8 hingga 12 patah perkataan">Pendek</option><option value="12 hingga 22 patah perkataan" selected>Sederhana</option><option value="22 hingga 35 patah perkataan">Panjang</option></select><b>Gaya poster</b><select id="pks"></select><button id="pkgo" style="width:100%;margin-top:8px">💡 Fikir kata-kata</button><p id="pkmsg" class="m"></p><div id="pklist"></div>';
+document.body.appendChild(pv);
+$("#kamusBtn").insertAdjacentHTML("afterend",'<button id="pkBtn" class="alt" style="width:100%;margin:0 0 8px">💡 Pemikir Kata: AI cipta kata-kata untuk poster</button>');
+(function(){const o=[];for(let i=0;i<ST.length;i++)if(Math.floor(i/10)===GR.indexOf("Kata & Karikatur"))o.push('<option value="'+i+'">'+ST[i][0]+"</option>");$("#pks").innerHTML=o.join("")})();
+async function pkGen(prompt){
+  const key=localStorage.getItem("thkey")||"";let err="";
+  for(const tm of TMODELS){
+    const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+tm+":generateContent?key="+key,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{responseMimeType:"application/json",temperature:1.1}})});
+    const x=await r.json();
+    if(r.ok)return(((x.candidates||[])[0]||{content:{parts:[]}}).content.parts||[]).filter(p=>p.text&&!p.thought).map(p=>p.text).join("");
+    err=(x.error&&x.error.message)||String(r.status);
+    if(r.status!==404&&!/not found|not supported/i.test(err))break;
+  }
+  throw new Error(err||"tiada jawapan");
+}
+async function pkThink(){
+  const m=$("#pkmsg"),t=$("#pkt").value.trim();
+  if(!t){m.textContent="Tulis topik dahulu.";return}
+  m.textContent="Sedang berfikir… (5–20 saat)";$("#pkgo").disabled=true;
+  try{
+    const txt=await pkGen(PKDIR+"\n\nTopik: "+t+"\nJenis: "+$("#pkj").value+"\nPanjang setiap petikan: "+$("#pkl").value+"\nBilangan petikan: 8");
+    let c;try{c=JSON.parse(txt.replace(/^\s*```(?:json)?/i,"").replace(/```\s*$/,"").trim())}catch(e){throw new Error("jawapan bukan JSON, cuba lagi")}
+    const a=((c&&c.kata)||[]).map(x=>String(x).trim()).filter(x=>x.length>5);
+    if(!a.length)throw new Error("tiada petikan, cuba lagi");
+    $("#pklist").innerHTML=a.map((x,i)=>'<div class="pkc"><p>'+x.replace(/&/g,"&amp;").replace(/</g,"&lt;")+'</p><button data-i="'+i+'">Guna kata ini</button><button class="alt" data-c="'+i+'">Salin</button></div>').join("");
+    window.__PK=a;
+    document.querySelectorAll("#pklist button[data-i]").forEach(b=>b.onclick=()=>pkUse(window.__PK[+b.dataset.i]));
+    document.querySelectorAll("#pklist button[data-c]").forEach(b=>b.onclick=()=>{try{navigator.clipboard.writeText(window.__PK[+b.dataset.c]);b.textContent="Disalin"}catch(e){b.textContent="Tidak dapat salin"}});
+    m.textContent=a.length+" kata. Tekan Fikir lagi untuk set baharu.";
+  }catch(e){m.textContent="Gagal: "+e.message}
+  $("#pkgo").disabled=false;
+}
+function pkUse(q){$("#pview").hidden=true;openStyle(+$("#pks").value);$("#hl").value=q;$("#msg").textContent="Kata dimasukkan dalam Tajuk. Tekan Jana JSON atau Jana Auto terus ke gambar."}
+$("#pkBtn").onclick=()=>{$("#home").hidden=true;$("#pview").hidden=false;window.scrollTo(0,0)};
+$("#pkback").onclick=()=>{$("#pview").hidden=true;$("#home").hidden=false};
+$("#pkgo").onclick=pkThink;
+window.__TH_END=1;(function(){var v=document.getElementById("ver");if(v){v.textContent="v1.2.6 ✓ lengkap · 115 gaya · 272 kamus · Pemikir Kata";v.style.background="#1f6b3a"}})();
 </script></body></html>

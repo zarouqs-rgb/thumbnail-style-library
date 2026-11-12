@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="ms"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TH Library v1.2.3</title>
+<!DOCTYPE html><html lang="ms"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TH Library v1.2.4</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font:15px/1.4 system-ui,sans-serif;background:#0d111b;color:#e8ecf4;padding:12px;max-width:760px;margin:auto}
 h1{font-size:20px;margin:6px 0 10px}input,textarea,button,select{font:inherit}
@@ -12,7 +12,7 @@ button{background:#2b6cff;color:#fff;border:0;border-radius:10px;padding:10px 14
 #lockbox img,.exi img{width:90px;border-radius:8px}.exi{display:inline-block;position:relative;margin-right:6px}.exi button{position:absolute;right:0;top:0;padding:2px 8px;margin:0}
 .out{width:100%;border-radius:12px;margin-top:8px}label.f{display:inline-block;background:#262e45;border-radius:10px;padding:10px 14px;cursor:pointer}
 </style></head><body>
-<div id="home"><h1>TH Library <span id="ver" style="font-size:12px;font-weight:600;padding:3px 8px;border-radius:99px;background:#7a2b2b;color:#fff;vertical-align:middle;margin-left:6px">v1.2.3 ⚠ belum lengkap</span></h1><button id="autoBtn" style="width:100%;padding:14px;font-size:16px;margin:6px 0 10px">✨ Jana Auto bebas: reka konsep dari tajuk + foto</button><button id="kamusBtn" class="alt" style="width:100%;margin:0 0 8px">📖 Kamus Gaya: baca semua jenis gaya dan maksudnya</button><div id="gcats"></div><div id="gal"></div>
+<div id="home"><h1>TH Library <span id="ver" style="font-size:12px;font-weight:600;padding:3px 8px;border-radius:99px;background:#7a2b2b;color:#fff;vertical-align:middle;margin-left:6px">v1.2.4 ⚠ belum lengkap</span></h1><button id="autoBtn" style="width:100%;padding:14px;font-size:16px;margin:6px 0 10px">✨ Jana Auto bebas: reka konsep dari tajuk + foto</button><button id="kamusBtn" class="alt" style="width:100%;margin:0 0 8px">📖 Kamus Gaya: baca semua jenis gaya dan maksudnya</button><div id="gcats"></div><div id="gal"></div>
 <details id="old"><summary style="margin:12px 0;font-weight:700">Perpustakaan lama (1,060 kod TH)</summary><input type="search" id="q" placeholder="Cari kod, contoh TH5, atau nama gaya">
 <div id="cats"></div>
 <div class="row"><label><input type="checkbox" id="onlyDetail"> Hanya yang ada resipi terperinci</label><label><input type="checkbox" id="onlyLock"> Hanya yang dikunci</label><span id="cnt" class="m"></span><br><small id="pst"></small></div>
@@ -212,6 +212,7 @@ const DIR=`You are a senior thumbnail and poster art director. From the topic ti
 3) Name the lighting (key light, rim light, colour temperature contrast) and a colour grade with three tonal zones (shadows, midtones, highlights) plus one or two accent colours. List the palette with colour names.
 4) Pick headline typography and treatment that fits the topic (material, weight, outline, effect). The headline is short and very large; place it deliberately and never cover the face.
 5) One focal point, strong contrast, readable at thumbnail size, key elements inside the central 3:4 safe zone. Vary the composition; do not always centre everything.
+5b) Celebration, school and national-day topics: add themed props that echo the outfit colours (for example paper-craft flowers, balloons, flags, kites), a softly blurred cheering crowd in the midground, blurred paper-plane or ribbon props in the foreground, golden backlight with a warm rim light on the subject, drifting confetti, and a chunky 3D headline with a coloured outline.
 6) Photos: attached photos are the user's real photographs. A photo marked LOCKED: the person's face, hair, body and whole outfit stay exactly as supplied, so design the scene, props, light and colours so that this exact outfit looks natural and intentional in it; never ask for the outfit to change. A photo marked EDIT: may be restyled to fit the concept. Say where each photo is placed (for example hero subject, or inside a framed portrait).
 7) No logos, brand names, real people, news claims, watermarks, or any text about how the image was made. The only text in the image is the headline. In the prompt write the placeholder {H} exactly once where the headline text belongs; never write the headline words yourself.
 Return ONLY JSON with these keys: konsep (one short Malay sentence naming the idea), suasana (Malay, the setting and atmosphere), mood (Malay, 2-3 words), palet (English, named colours and their roles), susun_atur (English, where the headline, subject and background elements sit), prompt (English, 150-260 words, the complete image prompt, without the safe-zone and no-other-text sentences, which are added automatically).`;
@@ -261,8 +262,8 @@ generate=async function(){if(cur==="AUTO"&&!R.AUTO){$("#msg").textContent="Tekan
 $("#gen").onclick=generate;
 $("#autogo").onclick=async()=>{if(await autoDirect())await generate()};
 $("#autoBtn").onclick=openAuto;
-// ===== v1.1 Galeri 100 gaya kreatif =====
-const GR=["Lukisan","Kartun","3D & Mainan","Retro","Fantasi","Digital","Foto","Poster","Nusantara","Eksperimen"];
+// ===== v1.1 Galeri 110 gaya kreatif =====
+const GR=["Lukisan","Kartun","3D & Mainan","Retro","Fantasi","Digital","Foto","Poster","Nusantara","Eksperimen","Tema & Gaya Viral"];
 const ST=[
 ["Impressionist painting","loose visible brushstrokes, dappled sunlight, soft blended colour, painterly outdoor light"],
 ["Acrylic painting","bold flat acrylic colour blocks with visible brush ridges, thick opaque paint, vivid saturated palette"],
@@ -363,7 +364,17 @@ const ST=[
 ["Cat cair","melting liquid paint dripping, glossy swirls, marbled colour flow, high saturation"],
 ["Dunia gula-gula","candy land, lollipops, gummy textures, glossy sugar colours, sweet pastel sky"],
 ["Seni makanan","a scene built from food and snacks, edible landscape, macro studio lighting, appetising colours"],
-["Serpihan cermin","mirror shards kaleidoscope, fractured reflections, prism rainbow light, surreal"]
+["Serpihan cermin","mirror shards kaleidoscope, fractured reflections, prism rainbow light, surreal"],
+["Kartun animasi","polished feature-film animation look, expressive characters with big readable emotions, smooth soft shading, rich saturated colour, cinematic animated-movie lighting"],
+["Dunia blok avatar","blocky toy-brick avatars with cylindrical limbs and simple faces, glossy plastic surfaces with small studs, bright sandbox playground world, chunky colourful game-lobby look, no real game logos"],
+["Dunia kubus voxel","everything built from chunky cubes: pixelated textured terrain, blocky trees, cube clouds and hills, square sun, sandbox survival-game mood, bright daylight, no real game logos"],
+["Coding dan ular","friendly coding-tutorial look: dark code-editor panel with glowing syntax-coloured lines of generic code, neon terminal glow, a cute stylised snake coiled around the scene, blue and yellow accents, no real language logos"],
+["Storygrid","comic storyboard grid of 4 to 6 panels in varied sizes with clean white gutters, each panel showing one beat of the story in sequence, strong panel-to-panel contrast, no text inside the panels"],
+["Lucu dan kelakar","wacky comedic energy: exaggerated shocked or goofy expression, oversized props, absurd situation, bright flat colours, motion lines, sweat drops and sparkles, playful off-kilter angle"],
+["Blur dan bokeh","heavy cinematic background blur with creamy bokeh discs, very shallow depth of field, soft blurred foreground elements framing the scene, razor-sharp subject, warm backlight haze"],
+["Fantastik","epic fantasy world: floating islands, glowing giant flora, waterfalls into the sky, magical light beams, tiny glowing spirits, painterly storybook grandeur with deep atmospheric perspective"],
+["Tak percaya","impossible-scale shock: a tiny subject beside a gigantic object or an impossible physics moment, wide-eyed amazed reaction, hyper-clear contrast, one bold circle or arrow graphic pointing at the surprise, no extra text"],
+["Meletup minda","mind-blowing reality break: the head or scene bursts open into a cosmos of light, shockwave rings, floating debris, fractured space, intense rim light and lens flare, saturated electric colours"],
 ];
 let curStyle=-1,gcat=-1,STYLEHINT="";
 const gst=document.createElement("style");
@@ -418,5 +429,5 @@ $("#kok").onclick=()=>{try{const d=JSON.parse($("#ktxt").value);if(!d||!d.g)thro
 const st=s=>{const m=document.getElementById("rmsg");if(m)m.textContent=s};
 (async()=>{for(const u of U){try{const r=await fetch(u,{cache:"no-cache"});if(!r.ok)continue;const d=await r.json();let n=0;for(const k in d){if(/^TH\d+$/.test(k)&&d[k]&&d[k].n&&d[k].t){R[k]=d[k];n++}}if(n){try{render()}catch(e){}st("Resipi dimuat automatik: "+n+" kod.");return}}catch(e){}}
 st("Resipi automatik tidak dapat dimuat; guna Import resipi.")})()})();
-window.__TH_END=1;(function(){var v=document.getElementById("ver");if(v){v.textContent="v1.2.3 ✓ lengkap · 100 gaya · 272 kamus";v.style.background="#1f6b3a"}})();
+window.__TH_END=1;(function(){var v=document.getElementById("ver");if(v){v.textContent="v1.2.4 ✓ lengkap · 110 gaya · 272 kamus";v.style.background="#1f6b3a"}})();
 </script></body></html>

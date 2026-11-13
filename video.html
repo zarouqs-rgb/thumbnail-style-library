@@ -34,6 +34,7 @@
 <button class="alt" id="cp">Salin laporan</button>
 </div>
 <script>
+window.addEventListener("error",e=>{try{log("RALAT SKRIP: "+e.message)}catch(_){}});window.addEventListener("unhandledrejection",e=>{try{log("RALAT: "+((e.reason&&e.reason.message)||e.reason))}catch(_){}});
 const $=s=>document.querySelector(s),API="https://generativelanguage.googleapis.com/v1beta/",L=[];
 const STYLES={"Realistik sinematik":"cinematic photorealistic, dramatic lighting, shallow depth of field","Kartun animasi 3D":"3D animated cartoon movie style, vibrant colors, expressive characters","Roblox":"Roblox game style, blocky characters, bright colorful world","Minecraft":"Minecraft voxel blocky style, pixelated textures","Komik viral":"bold comic book illustration, halftone, thick outlines, punchy colors","Storygrid ceria":"flat vector illustration, playful, bright pastel colors, clean shapes","Fantasi menakjubkan":"epic fantasy digital painting, glowing magical light, awe-inspiring","Lawak karikatur":"funny exaggerated caricature cartoon, big expressive faces","Dokumentari sebenar":"documentary photography, natural light, candid realistic"};
 const VOICES=["Kore","Puck","Charon","Aoede","Zephyr","Fenrir","Leda","Orus","Callirrhoe","Algenib"];
@@ -217,7 +218,7 @@ async function run(resume){
   const out=await assemble(run2,ctx,wmo);
   await kvSet("video",out.blob);ST.done=true;ST.mime=out.mime;await saveST();
   showResult(out.blob,sc,ST.cap,ST.srcs,out.mime);prog(1);log("Siap. Muat turun video atau hantar kepada Claude.");
- }catch(e){log("RALAT: "+(e.message||e)+"\n(kemajuan disimpan, tekan Sambung untuk cuba lagi)");$("#rep").value=L.join("\n");$("#res").style.display="block";try{ctx.close()}catch(_){}if(ST&&ST.sj)$("#rsm").style.display="inline-block"}
+ }catch(e){log("RALAT: "+(e.message||e)+(e.st===401||/401/.test(e.message||"")?"\nSesi Canvas sudah tamat (terlalu lama ditinggalkan). Tutup Canvas, buka semula, kemudian tekan Sambung.":"")+"\n(kemajuan disimpan, tekan Sambung untuk cuba lagi)");try{ctx.close()}catch(_){}if(ST&&ST.sj)$("#rsm").style.display="inline-block"}
  $("#go").disabled=false}
 $("#wo").addEventListener("input",()=>{$("#wov").textContent=$("#wo").value+"%"});
 $("#fs").addEventListener("change",async()=>{for(const f of [].slice.call($("#fs").files)){const im=await new Promise(res=>{const fr=new FileReader();fr.onload=()=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>res(null);i.src=fr.result};fr.onerror=()=>res(null);fr.readAsDataURL(f)});if(im)SHOTS.push({im,c:{t:0,b:0,l:0,r:0},scene:0})}$("#fs").value="";renderShots()});
@@ -225,7 +226,11 @@ $("#wl").addEventListener("change",()=>{const f=$("#wl").files[0];if(!f)return;c
 $("#md").addEventListener("change",()=>{$("#skx").style.display=$("#md").value!=="biasa"?"block":"none"});$("#go").onclick=()=>run(false);$("#rsm").onclick=()=>run(true);
 FIELDS.concat(["rs"]).forEach(k=>$("#"+k).addEventListener("change",saveForm));$("#tj").addEventListener("input",saveForm);$("#nt").addEventListener("input",saveForm);
 (async()=>{const lg=await kvGet("logo");if(lg){LOGO=lg;$("#wlp").textContent="Logo tersimpan"}const fm=await kvGet("form");if(fm){FIELDS.forEach(k=>{if(fm[k]!=null)$("#"+k).value=fm[k]});if(fm.rs!=null)$("#rs").checked=fm.rs;$("#wov").textContent=$("#wo").value+"%"}
- const st=await kvGet("st");if(st&&st.sj){ST=st;if(st.done){const v=await kvGet("video");if(v){showResult(v,st.sc,st.cap,st.srcs,st.mime);log("Video terakhir dipulihkan.")}}else{$("#rsm").style.display="inline-block";log("Ada kerja belum siap ("+st.sc.filter(x=>x.pcm).length+"/"+st.sc.length+" babak). Tekan Sambung.")}}})();
+ try{const st=await kvGet("st");const ok=st&&st.sj&&Array.isArray(st.sc)&&st.sc.length&&st.sc.every(x=>x&&Array.isArray(x.baris));
+ if(st&&!ok){await kvDel("st");await kvDel("video");log("Kemajuan lama tak serasi dengan versi baru, dibuang. Mulakan semula.")}
+ else if(ok){ST=st;if(st.done){const v=await kvGet("video");if(v){showResult(v,st.sc,st.cap,st.srcs,st.mime);log("Video terakhir dipulihkan.")}}else{$("#rsm").style.display="inline-block";log("Ada kerja belum siap ("+st.sc.filter(x=>x.baris.every(r=>r.pcm)).length+"/"+st.sc.length+" babak). Tekan Sambung.")}}}
+ catch(e){log("Gagal pulihkan kemajuan: "+(e.message||e));ST=null;await kvDel("st")}
+})();
 $("#cp").onclick=()=>{const t=$("#rep");t.select();try{document.execCommand("copy")}catch(e){}};
-window.__VID_END=1;$("#ver").textContent="✓ v1.6 lengkap";$("#ver").className="ok";
+window.__VID_END=1;$("#ver").textContent="✓ v1.6.1 lengkap";$("#ver").className="ok";
 </script></body></html>

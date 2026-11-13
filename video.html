@@ -9,7 +9,7 @@
 <div class="row"><div><label>Gaya visual</label><select id="gy"></select></div><div><label>Bilangan babak</label><select id="bb"><option>4</option><option selected>5</option><option>6</option><option>7</option><option>8</option></select></div></div>
 <div class="row"><div><label>Suara</label><select id="sr"></select></div><div><label>Nada</label><select id="nd"><option value="mesra dan ceria">Mesra dan ceria</option><option value="bersemangat seperti pengacara TikTok">Bersemangat</option><option value="tenang dan jelas seperti penerang">Tenang dan jelas</option><option value="dramatik dan misteri">Dramatik</option><option value="santai dan lawak">Santai dan lawak</option></select></div></div>
 <label>Kunci API (biarkan kosong dalam Canvas)</label><input id="key" placeholder="kosong = Canvas isi sendiri">
-<div style="margin-top:12px"><button class="big" id="go">Jana Video</button></div>
+<div style="margin-top:12px"><button class="big" id="go">Jana Video</button><button class="alt big" id="rsm" style="display:none;margin-top:8px">Sambung dari tempat terakhir</button></div>
 <div id="bar"><i></i></div>
 <pre id="log">Sedia.</pre>
 <div id="res" style="display:none">
@@ -47,11 +47,21 @@ async function makeImage(prompt,style,photos){
  parts.push({text:(photos.length?"Use the person in the reference photo(s) as the main character, keep their face and likeness. ":"")+"Vertical 9:16 video frame. "+prompt+". Style: "+style+". Absolutely no text, letters, captions or watermarks in the image."});
  const x=await withModels(["gemini-3.1-flash-image","gemini-2.5-flash-image"],m=>post("models/"+m+":generateContent",{contents:[{role:"user",parts}],generationConfig:{responseModalities:["TEXT","IMAGE"],imageConfig:{aspectRatio:"9:16"}}}));
  const pt=((x.candidates||[])[0]||{content:{parts:[]}}).content.parts.find(q=>q.inlineData);if(!pt)throw new Error("tiada gambar dalam jawapan");return "data:"+pt.inlineData.mimeType+";base64,"+pt.inlineData.data}
-async function makeVoice(text,voice,tone,ctx){
+async function makeVoice(text,voice,tone){
  const x=await withModels(["gemini-2.5-flash-preview-tts"],m=>post("models/"+m+":generateContent",{contents:[{role:"user",parts:[{text:"Bacakan dalam bahasa Melayu Malaysia dengan nada "+tone+", sebutan jelas dan lancar: "+text}]}],generationConfig:{responseModalities:["AUDIO"],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:voice}}}}}));
- const pt=x.candidates[0].content.parts.find(q=>q.inlineData);if(!pt)throw new Error("tiada audio");
- const bin=atob(pt.inlineData.data),n=bin.length>>1,buf=ctx.createBuffer(1,n,24000),ch=buf.getChannelData(0);
+ const pt=x.candidates[0].content.parts.find(q=>q.inlineData);if(!pt)throw new Error("tiada audio");return pt.inlineData.data}
+function toBuf(b64,ctx){const bin=atob(b64),n=bin.length>>1,buf=ctx.createBuffer(1,n,24000),ch=buf.getChannelData(0);
  for(let i=0;i<n;i++){let v=bin.charCodeAt(2*i)|(bin.charCodeAt(2*i+1)<<8);if(v>32767)v-=65536;ch[i]=v/32768}return buf}
+// simpanan: IndexedDB (kalau dibenarkan), supaya boleh sambung selepas refresh
+let DBP=null;function db(){if(!DBP)DBP=new Promise((res,rej)=>{try{const q=indexedDB.open("jvid",1);q.onupgradeneeded=()=>q.result.createObjectStore("k");q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)}catch(e){rej(e)}});return DBP}
+async function kvSet(k,v){try{const d=await db();return await new Promise((r,j)=>{const t=d.transaction("k","readwrite");t.objectStore("k").put(v,k);t.oncomplete=()=>r(true);t.onerror=()=>j(t.error)})}catch(e){return false}}
+async function kvGet(k){try{const d=await db();return await new Promise((r,j)=>{const q=d.transaction("k").objectStore("k").get(k);q.onsuccess=()=>r(q.result);q.onerror=()=>j(q.error)})}catch(e){return undefined}}
+async function kvDel(k){try{const d=await db();d.transaction("k","readwrite").objectStore("k").delete(k)}catch(e){}}
+let ST=null;
+const FIELDS=["tj","nt","gy","bb","sr","nd"];
+function form(){const f={};FIELDS.forEach(k=>f[k]=$("#"+k).value);f.rs=$("#rs").checked;return f}
+function saveForm(){kvSet("form",form())}
+async function saveST(){if(ST)return kvSet("st",ST)}
 function loadImg(src){return new Promise(res=>{const im=new Image();im.onload=()=>res(im);im.onerror=()=>res(null);setTimeout(()=>res(null),8000);im.src=src})}
 function wrap(c,t,w){const ws=t.split(/\s+/),ls=[];let l="";ws.forEach(x=>{const q=l?l+" "+x:x;if(c.measureText(q).width>w&&l){ls.push(l);l=x}else l=q});if(l)ls.push(l);return ls}
 function chunks(t){const ws=t.split(/\s+/),o=[];for(let i=0;i<ws.length;i+=4)o.push(ws.slice(i,i+4).join(" "));return o}
@@ -78,34 +88,46 @@ async function assemble(sc,ctx){
   prog(.55+.45*Math.min(1,t/total));requestAnimationFrame(frame)}frame()});
  rec.stop();await done;ctx.close&&ctx.close();
  return{blob:new Blob(parts,{type:(rec.mimeType||mt||"video/webm").split(";")[0]}),mime:rec.mimeType||mt}}
-async function run(){
- const tj=$("#tj").value.trim();if(!tj){log("Isi tajuk dahulu.");return}
- L.length=0;$("#go").disabled=true;$("#res").style.display="none";prog(0);
+function showResult(blob,sc,cap,srcs,mime){
+ const url=URL.createObjectURL(blob),ext=/mp4/.test(blob.type)?"mp4":"webm";
+ $("#out").src=url;$("#dl").innerHTML='<a href="'+url+'" download="video.'+ext+'"><button>Muat turun video ('+ext+', '+(blob.size/1048576).toFixed(1)+' MB)</button></a>';
+ $("#sc").innerHTML="";sc.forEach(s=>{if(s.img){const i=new Image();i.src=s.img;$("#sc").appendChild(i)}});
+ $("#cap").value=cap||"";
+ $("#rep").value=["Video siap","Format: "+(mime||blob.type),"Saiz: "+(blob.size/1048576).toFixed(2)+" MB","Babak: "+sc.length,"Sumber research: "+((srcs||[]).join("; ")||"tiada"),"Gambar gagal: "+sc.filter(s=>!s.img).length].join("\n");
+ $("#res").style.display="block"}
+async function run(resume){
+ L.length=0;$("#go").disabled=true;$("#rsm").style.display="none";$("#res").style.display="none";prog(0);
+ if(!resume||!ST){const tj=$("#tj").value.trim();if(!tj){log("Isi tajuk dahulu.");$("#go").disabled=false;return}
+  ST={f:form(),photos:[],sj:null,sc:null,srcs:[],cap:"",nota:null};
+  for(const f of [].slice.call($("#ft").files,0,2)){const b=await readFile(f);if(b)ST.photos.push(b)}
+  await kvDel("video");await saveST()}else{log("Menyambung daripada tempat terakhir…");
+  FIELDS.forEach(k=>$("#"+k).value=ST.f[k]);$("#rs").checked=ST.f.rs}
  const AC=window.AudioContext||window.webkitAudioContext,ctx=new AC();try{await ctx.resume()}catch(e){}
  try{
-  const photos=[];for(const f of [].slice.call($("#ft").files,0,2)){const b=await readFile(f);if(b)photos.push(b)}
-  const n=+$("#bb").value,style=STYLES[$("#gy").value];
-  let nota=$("#nt").value.trim(),srcs=[];
-  if($("#rs").checked){log("0/3 Research dengan carian Google…");try{const r=await research(tj,nota);nota=(nota?nota+"\n\n":"")+"HASIL RESEARCH (guna ini sebagai fakta):\n"+r.t;srcs=r.src;log("   research siap"+(srcs.length?" ("+srcs.length+" sumber)":""))}catch(e){log("   research gagal, guna pengetahuan am: "+e.message.slice(0,100))}}
-  log("1/3 Menulis skrip…");const sj=await writeScript(tj,nota,n,photos.length>0);log("   skrip siap: "+sj.babak.length+" babak");prog(.1);
-  const sc=sj.babak.map(b=>({narasi:String(b.narasi||"").replace(/[*_#]/g,"").trim(),imej:b.imej||tj}));
+  const f=ST.f,tj=f.tj,n=+f.bb,style=STYLES[f.gy];
+  if(!ST.sj){
+   let nota=f.nt.trim(),srcs=[];
+   if(f.rs){log("0/3 Research dengan carian Google…");try{const r=await research(tj,nota);nota=(nota?nota+"\n\n":"")+"HASIL RESEARCH (guna ini sebagai fakta):\n"+r.t;srcs=r.src;log("   research siap"+(srcs.length?" ("+srcs.length+" sumber)":""))}catch(e){log("   research gagal, guna pengetahuan am: "+e.message.slice(0,100))}}
+   log("1/3 Menulis skrip…");const sj=await writeScript(tj,nota,n,ST.photos.length>0);
+   ST.sj=sj;ST.srcs=srcs;ST.cap=sj.kapsyen||"";ST.sc=sj.babak.map(b=>({narasi:String(b.narasi||"").replace(/[*_#]/g,"").trim(),imej:b.imej||tj,img:undefined,pcm:null}));await saveST();log("   skrip siap: "+ST.sc.length+" babak")}
+  else log("1/3 Skrip sudah ada ("+ST.sc.length+" babak)");
+  prog(.1);const sc=ST.sc;
   for(let i=0;i<sc.length;i++){
-   log("2/3 Babak "+(i+1)+"/"+sc.length+": gambar…");
-   try{sc[i].img=await makeImage(sc[i].imej,style,photos)}catch(e){sc[i].img=null;log("   gambar gagal: "+e.message.slice(0,100))}
-   log("   suara…");
-   sc[i].buf=await makeVoice(sc[i].narasi,$("#sr").value,$("#nd").value,ctx);
+   if(sc[i].img===undefined){log("2/3 Babak "+(i+1)+"/"+sc.length+": gambar…");
+    try{sc[i].img=await makeImage(sc[i].imej,style,ST.photos)}catch(e){sc[i].img=null;log("   gambar gagal: "+e.message.slice(0,100))}await saveST()}
+   if(!sc[i].pcm){log("2/3 Babak "+(i+1)+"/"+sc.length+": suara…");sc[i].pcm=await makeVoice(sc[i].narasi,f.sr,f.nd);await saveST()}
    prog(.1+.45*(i+1)/sc.length)}
+  const run2=sc.map(s=>({narasi:s.narasi,img:s.img,buf:toBuf(s.pcm,ctx)}));
   log("3/3 Menyambung video (akan main sendiri, jangan tutup tab)…");
-  const out=await assemble(sc,ctx);
-  const url=URL.createObjectURL(out.blob),ext=/mp4/.test(out.blob.type)?"mp4":"webm";
-  $("#out").src=url;$("#dl").innerHTML='<a href="'+url+'" download="video.'+ext+'"><button>Muat turun video ('+ext+', '+(out.blob.size/1048576).toFixed(1)+' MB)</button></a>';
-  $("#sc").innerHTML="";sc.forEach(s=>{if(s.img){const i=new Image();i.src=s.img;$("#sc").appendChild(i)}});
-  $("#cap").value=sj.kapsyen||"";
-  $("#rep").value=["Video siap","Format: "+out.mime,"Saiz: "+(out.blob.size/1048576).toFixed(2)+" MB","Babak: "+sc.length,"Sumber research: "+(srcs.join("; ")||"tiada"),"Gambar gagal: "+sc.filter(s=>!s.img).length,"Tempoh: "+sc.reduce((a,s)=>a+s.buf.duration,0).toFixed(1)+" s"].join("\n");
-  $("#res").style.display="block";prog(1);log("Siap. Muat turun video atau hantar kepada Claude.");
- }catch(e){log("RALAT: "+(e.message||e));$("#rep").value=L.join("\n");$("#res").style.display="block";try{ctx.close()}catch(_){}}
+  const out=await assemble(run2,ctx);
+  await kvSet("video",out.blob);ST.done=true;ST.mime=out.mime;await saveST();
+  showResult(out.blob,sc,ST.cap,ST.srcs,out.mime);prog(1);log("Siap. Muat turun video atau hantar kepada Claude.");
+ }catch(e){log("RALAT: "+(e.message||e)+"\n(kemajuan disimpan, tekan Sambung untuk cuba lagi)");$("#rep").value=L.join("\n");$("#res").style.display="block";try{ctx.close()}catch(_){}if(ST&&ST.sj)$("#rsm").style.display="inline-block"}
  $("#go").disabled=false}
-$("#go").onclick=run;
+$("#go").onclick=()=>run(false);$("#rsm").onclick=()=>run(true);
+FIELDS.concat(["rs"]).forEach(k=>$("#"+k).addEventListener("change",saveForm));$("#tj").addEventListener("input",saveForm);$("#nt").addEventListener("input",saveForm);
+(async()=>{const fm=await kvGet("form");if(fm){FIELDS.forEach(k=>{if(fm[k]!=null)$("#"+k).value=fm[k]});if(fm.rs!=null)$("#rs").checked=fm.rs}
+ const st=await kvGet("st");if(st&&st.sj){ST=st;if(st.done){const v=await kvGet("video");if(v){showResult(v,st.sc,st.cap,st.srcs,st.mime);log("Video terakhir dipulihkan.")}}else{$("#rsm").style.display="inline-block";log("Ada kerja belum siap ("+st.sc.filter(x=>x.pcm).length+"/"+st.sc.length+" babak). Tekan Sambung.")}}})();
 $("#cp").onclick=()=>{const t=$("#rep");t.select();try{document.execCommand("copy")}catch(e){}};
-window.__VID_END=1;$("#ver").textContent="✓ v1.1 lengkap";$("#ver").className="ok";
+window.__VID_END=1;$("#ver").textContent="✓ v1.2 lengkap";$("#ver").className="ok";
 </script></body></html>

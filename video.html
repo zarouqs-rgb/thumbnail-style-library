@@ -4,6 +4,7 @@
 <p class="m">Tulis tajuk dan bahan, tambah foto kalau nak, tekan Jana. Skrip, gambar dan suara dibuat oleh Gemini, kemudian disambung jadi video menegak 9:16.</p>
 <label>Tajuk / topik</label><input id="tj" placeholder="cth: Cara tukar nombor plat di MyJPJ">
 <label>Bahan / nota / fakta (pilihan)</label><textarea id="nt" placeholder="Tampal fakta, langkah atau idea di sini"></textarea>
+<label style="display:flex;gap:8px;align-items:center;color:#e8ecf4"><input id="rs" type="checkbox" checked style="width:auto"> Research dahulu dengan carian Google (fakta lebih tepat)</label>
 <label>Foto sendiri (pilihan, maksimum 2)</label><input id="ft" type="file" accept="image/*" multiple>
 <div class="row"><div><label>Gaya visual</label><select id="gy"></select></div><div><label>Bilangan babak</label><select id="bb"><option>4</option><option selected>5</option><option>6</option><option>7</option><option>8</option></select></div></div>
 <div class="row"><div><label>Suara</label><select id="sr"></select></div><div><label>Nada</label><select id="nd"><option value="mesra dan ceria">Mesra dan ceria</option><option value="bersemangat seperti pengacara TikTok">Bersemangat</option><option value="tenang dan jelas seperti penerang">Tenang dan jelas</option><option value="dramatik dan misteri">Dramatik</option><option value="santai dan lawak">Santai dan lawak</option></select></div></div>
@@ -31,6 +32,12 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function post(path,body){const k=$("#key").value.trim();const r=await fetch(API+path+"?key="+k,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});let x={};try{x=await r.json()}catch(e){}if(!r.ok){const m=(x.error&&x.error.message)||("status "+r.status);const e=new Error(m);e.st=r.status;throw e}return x}
 async function withModels(models,fn){let last;for(const m of models){for(let t=0;t<2;t++){try{return await fn(m)}catch(e){last=e;if(e.st===429||e.st===503){await sleep(4000*(t+1));continue}break}}}throw last}
 function readFile(f){return new Promise(res=>{const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,768/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext("2d").drawImage(im,0,0,c.width,c.height);res(c.toDataURL("image/jpeg",.85).split(",")[1])};im.onerror=()=>res(null);im.src=fr.result};fr.onerror=()=>res(null);fr.readAsDataURL(f)})}
+async function research(tj,nt){
+ const p="Kaji topik ini untuk video pendek bahasa Melayu Malaysia: "+tj+(nt?"\nNota pengguna: "+nt:"")+"\nCari maklumat TERKINI dan TEPAT dari sumber rasmi. Beri 8-12 fakta/langkah penting, ringkas, dalam bahasa Melayu. Sertakan nombor, tarikh, kos atau syarat jika ada. Jangan reka maklumat.";
+ const x=await withModels(["gemini-2.5-flash","gemini-flash-latest"],m=>post("models/"+m+":generateContent",{contents:[{role:"user",parts:[{text:p}]}],tools:[{google_search:{}}]}));
+ const c=x.candidates[0],t=c.content.parts.map(q=>q.text||"").join("").trim();
+ const src=((c.groundingMetadata||{}).groundingChunks||[]).map(g=>g.web&&g.web.title).filter(Boolean).slice(0,6);
+ if(!t)throw new Error("research kosong");return{t,src}}
 async function writeScript(tj,nt,n,hasPhoto){
  const p="Anda penulis skrip video pendek TikTok/Reels dalam bahasa Melayu Malaysia santai.\nTajuk: "+tj+"\nBahan: "+(nt||"(tiada, guna pengetahuan am yang tepat)")+"\nBuat tepat "+n+" babak. Setiap babak: 'narasi' (1-2 ayat pendek, sebutan mudah, maksimum 22 patah perkataan, tanpa emoji, tanpa simbol) dan 'imej' (arahan imej dalam BAHASA INGGERIS, satu babak visual yang jelas, tiada teks atau tulisan dalam imej"+(hasPhoto?", orang utama ialah orang dalam foto rujukan":"")+"). Babak pertama mesti hook yang menarik perhatian. Babak terakhir ajak tonton/ikut. Juga beri 'kapsyen' (kapsyen Facebook/TikTok pendek dengan 5 hashtag). Balas JSON sahaja: {\"kapsyen\":\"...\",\"babak\":[{\"narasi\":\"...\",\"imej\":\"...\"}]}";
  const x=await withModels(["gemini-2.5-flash","gemini-flash-latest","gemini-2.5-flash-preview-09-2025"],m=>post("models/"+m+":generateContent",{contents:[{role:"user",parts:[{text:p}]}],generationConfig:{responseMimeType:"application/json",temperature:.9}}));
@@ -78,7 +85,9 @@ async function run(){
  try{
   const photos=[];for(const f of [].slice.call($("#ft").files,0,2)){const b=await readFile(f);if(b)photos.push(b)}
   const n=+$("#bb").value,style=STYLES[$("#gy").value];
-  log("1/3 Menulis skrip…");const sj=await writeScript(tj,$("#nt").value.trim(),n,photos.length>0);log("   skrip siap: "+sj.babak.length+" babak");prog(.1);
+  let nota=$("#nt").value.trim(),srcs=[];
+  if($("#rs").checked){log("0/3 Research dengan carian Google…");try{const r=await research(tj,nota);nota=(nota?nota+"\n\n":"")+"HASIL RESEARCH (guna ini sebagai fakta):\n"+r.t;srcs=r.src;log("   research siap"+(srcs.length?" ("+srcs.length+" sumber)":""))}catch(e){log("   research gagal, guna pengetahuan am: "+e.message.slice(0,100))}}
+  log("1/3 Menulis skrip…");const sj=await writeScript(tj,nota,n,photos.length>0);log("   skrip siap: "+sj.babak.length+" babak");prog(.1);
   const sc=sj.babak.map(b=>({narasi:String(b.narasi||"").replace(/[*_#]/g,"").trim(),imej:b.imej||tj}));
   for(let i=0;i<sc.length;i++){
    log("2/3 Babak "+(i+1)+"/"+sc.length+": gambar…");
@@ -92,11 +101,11 @@ async function run(){
   $("#out").src=url;$("#dl").innerHTML='<a href="'+url+'" download="video.'+ext+'"><button>Muat turun video ('+ext+', '+(out.blob.size/1048576).toFixed(1)+' MB)</button></a>';
   $("#sc").innerHTML="";sc.forEach(s=>{if(s.img){const i=new Image();i.src=s.img;$("#sc").appendChild(i)}});
   $("#cap").value=sj.kapsyen||"";
-  $("#rep").value=["Video siap","Format: "+out.mime,"Saiz: "+(out.blob.size/1048576).toFixed(2)+" MB","Babak: "+sc.length,"Gambar gagal: "+sc.filter(s=>!s.img).length,"Tempoh: "+sc.reduce((a,s)=>a+s.buf.duration,0).toFixed(1)+" s"].join("\n");
+  $("#rep").value=["Video siap","Format: "+out.mime,"Saiz: "+(out.blob.size/1048576).toFixed(2)+" MB","Babak: "+sc.length,"Sumber research: "+(srcs.join("; ")||"tiada"),"Gambar gagal: "+sc.filter(s=>!s.img).length,"Tempoh: "+sc.reduce((a,s)=>a+s.buf.duration,0).toFixed(1)+" s"].join("\n");
   $("#res").style.display="block";prog(1);log("Siap. Muat turun video atau hantar kepada Claude.");
  }catch(e){log("RALAT: "+(e.message||e));$("#rep").value=L.join("\n");$("#res").style.display="block";try{ctx.close()}catch(_){}}
  $("#go").disabled=false}
 $("#go").onclick=run;
 $("#cp").onclick=()=>{const t=$("#rep");t.select();try{document.execCommand("copy")}catch(e){}};
-window.__VID_END=1;$("#ver").textContent="✓ v1.0 lengkap";$("#ver").className="ok";
+window.__VID_END=1;$("#ver").textContent="✓ v1.1 lengkap";$("#ver").className="ok";
 </script></body></html>

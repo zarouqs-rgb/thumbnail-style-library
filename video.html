@@ -236,6 +236,10 @@ async function run(resume){
   if(sk&&ST.sheet===undefined){log("2/3 Lukis lembaran watak…");try{ST.sheet=await charSheet(ST.wk,style)}catch(e){ST.sheet=null;log("   lembaran watak gagal: "+e.message.slice(0,100))}await saveST()}
   const cast=sk?ST.wk.map(w=>w.nama+" ("+w.rupa+")").join("; "):"";
   for(let i=0;i<sc.length;i++){
+   for(let j=0;j<sc[i].baris.length;j++){const r=sc[i].baris[j];if(!r.pcm){log("2/3 Suara babak "+(i+1)+"/"+sc.length+": suara "+(j+1)+"/"+sc[i].baris.length+"…");r.pcm=await makeVoice(r.teks,sk?(ST.vo[r.siapa]||f.sr):f.sr,sk?"watak sketsa "+f.jn+", berekspresi dan hidup":f.nd);await saveST()}}
+   prog(.1+.15*(i+1)/sc.length)}
+  {let tot=0;sc.forEach(x=>x.baris.forEach(r=>{tot+=r.pcm?(atob(r.pcm).length/2/24000):0}));log('   suara siap, jumlah kira-kira '+Math.round(tot+sc.length*.35)+' saat'+(tot>60?' (lebih 60 saat, pertimbang kurangkan babak)':''))}
+  for(let i=0;i<sc.length;i++){
    if(sc[i].img===undefined&&ST.shotMap[i]){sc[i].img=ST.shotMap[i];sc[i].shot=1;log("2/3 Babak "+(i+1)+"/"+sc.length+": guna gambar sebenar");await saveST()}
    if(sc[i].img===undefined){log("2/3 Babak "+(i+1)+"/"+sc.length+": gambar…");
     try{sc[i].img=await makeImage(sc[i].imej+(f.md==="komik"?". Single comic book panel, bold ink outlines, subject centered. Do NOT draw any speech bubbles, balloons, captions or text, keep it a clean illustration":""),style,ST.photos,f.lt,sk?ST.sheet:null,cast)}catch(e){sc[i].img=null;log("   gambar gagal: "+e.message.slice(0,100))}await saveST()}
@@ -244,8 +248,7 @@ async function run(resume){
     if(!r.padan&&r.masalah){log("   gambar tak sepadan dengan dialog, lukis semula: "+r.masalah.slice(0,90));
      try{const im2=await makeImage(sc[i].imej+(f.md==="komik"?". Single comic book panel, bold ink outlines, subject centered. Do NOT draw any speech bubbles, balloons, captions or text, keep it a clean illustration":"")+". IMPORTANT CORRECTION: "+r.masalah,style,ST.photos,f.lt,ST.sheet,cast);sc[i].img=im2;try{r=await locate(im2,ST.wk,sc[i].imej,sc[i].baris)}catch(e){r={pos:{},padan:true}}}catch(e){log("   lukis semula gagal, guna gambar asal")}}
     sc[i].pos=r.pos||{};await saveST()}
-   for(let j=0;j<sc[i].baris.length;j++){const r=sc[i].baris[j];if(!r.pcm){log("2/3 Babak "+(i+1)+"/"+sc.length+": suara "+(j+1)+"/"+sc[i].baris.length+"…");r.pcm=await makeVoice(r.teks,sk?(ST.vo[r.siapa]||f.sr):f.sr,sk?"watak sketsa "+f.jn+", berekspresi dan hidup":f.nd);await saveST()}}
-   prog(.1+.45*(i+1)/sc.length)}
+   prog(.25+.30*(i+1)/sc.length)}
   const names=(ST.wk||[]).map(w=>w.nama);
   const run2=sc.map(s=>{const bs=s.baris.map(r=>toBuf(r.pcm,ctx)),gap=Math.round(24000*.28),tot=bs.reduce((a,b)=>a+b.length,0)+gap*(bs.length-1),buf=ctx.createBuffer(1,tot,24000),ch=buf.getChannelData(0),lines=[];let o=0;
    bs.forEach((b,j)=>{ch.set(b.getChannelData(0),o);const r=s.baris[j],ix=Math.max(0,names.indexOf(r.siapa));lines.push({who:sk?r.siapa:"",teks:r.teks,col:sk?COL[ix%COL.length]:"#ffe14a",ix,t0:o/24000,t1:(o+b.length)/24000});o+=b.length+gap});
@@ -269,5 +272,5 @@ FIELDS.concat(["rs"]).forEach(k=>$("#"+k).addEventListener("change",saveForm));$
  catch(e){log("Gagal pulihkan kemajuan: "+(e.message||e));ST=null;await kvDel("st")}
 })();
 $("#cp").onclick=()=>{const t=$("#rep");t.select();try{document.execCommand("copy")}catch(e){}};
-window.__VID_END=1;$("#ver").textContent="✓ v1.8.2 lengkap";$("#ver").className="ok";
+window.__VID_END=1;$("#ver").textContent="✓ v1.8.3 lengkap";$("#ver").className="ok";
 </script></body></html>

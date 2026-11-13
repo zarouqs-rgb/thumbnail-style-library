@@ -9,7 +9,7 @@
 <label style="display:flex;gap:8px;align-items:center;color:#e8ecf4"><input id="rs" type="checkbox" checked style="width:auto"> Research dahulu dengan carian Google (fakta lebih tepat)</label>
 <label>Foto sendiri (pilihan, maksimum 2)</label><input id="ft" type="file" accept="image/*" multiple>
 <div class="row"><div><label>Gaya visual</label><select id="gy"></select></div><div><label>Bilangan babak</label><select id="bb"><option>4</option><option selected>5</option><option>6</option><option>7</option><option>8</option><option>10</option><option>12</option></select></div></div>
-<label>Paparan teks</label><select id="pg"><option value="sari">Sari kata di bawah</option><option value="komik">Gelembung komik</option></select>
+<label>Paparan teks</label><select id="pg"><option value="taip">Taip dekat watak (tiada gelembung)</option><option value="sari">Sari kata di bawah</option></select>
 <label>Latar &amp; watak</label><select id="lt"><option value="Malaysia">Malaysia (orang dan tempat tempatan)</option><option value="">Bebas (tiada had)</option></select>
 <div class="row"><div><label>Suara</label><select id="sr"></select></div><div><label>Nada</label><select id="nd"><option value="mesra dan ceria">Mesra dan ceria</option><option value="bersemangat seperti pengacara TikTok">Bersemangat</option><option value="tenang dan jelas seperti penerang">Tenang dan jelas</option><option value="dramatik dan misteri">Dramatik</option><option value="santai dan lawak">Santai dan lawak</option></select></div></div>
 <h2>Skrin sebenar (pilihan)</h2>
@@ -160,6 +160,24 @@ function drawWM(g,W,H,w,t){if(!w||(!w.txt&&!w.logo))return;g.save();g.globalAlph
  else{let cx=x;if(w.logo){const lh=Math.round(sz*2.2),lw=Math.round(w.logo.width*lh/w.logo.height);g.drawImage(w.logo,cx,y+(bh-lh)/2,lw,lh);cx+=lw+12}
   if(txt){g.textAlign="left";g.lineJoin="round";g.lineWidth=Math.max(4,sz/5);g.strokeStyle="rgba(0,0,0,.75)";g.fillStyle="#fff";g.strokeText(txt,cx,y+bh/2);g.fillText(txt,cx,y+bh/2)}}
  g.restore()}
+function typeText(g,ln,pp,tr,W,H,lt,topMin){
+ const full=ln.teks,prog=Math.min(1,Math.max(0,(lt-ln.t0)/Math.max(.4,(ln.t1-ln.t0)*.92))),n=Math.ceil(full.length*prog);
+ g.font="800 40px system-ui,Arial,sans-serif";g.textAlign="center";g.textBaseline="alphabetic";g.lineJoin="round";
+ const ls=wrap(g,full,Math.min(520,W-80)),lh=50,bh=ls.length*lh,nm=ln.who?36:0;
+ let cx=W/2,top;
+ if(pp&&tr&&pp.hx!=null){const hx=tr.x+pp.hx*tr.w,hy=tr.y+pp.hy*tr.h,fy=tr.y+(pp.fy!=null?pp.fy:pp.hy+.3)*tr.h;cx=hx;top=hy-30-bh-nm;if(top<topMin)top=Math.min(H-bh-nm-220,fy+24)}
+ else{top=topMin+(ln.ix%2?170:20);cx=ln.ix%2?W*.62:W*.38}
+ let wmax=0;ls.forEach(l=>{wmax=Math.max(wmax,g.measureText(l).width)});cx=Math.min(W-30-wmax/2,Math.max(30+wmax/2,cx));top=Math.min(H-bh-nm-120,Math.max(topMin,top));
+ if(ln.who){g.font="800 28px system-ui,Arial,sans-serif";g.lineWidth=7;g.strokeStyle="#000";g.fillStyle=ln.col;g.strokeText(ln.who.toUpperCase(),cx,top+26);g.fillText(ln.who.toUpperCase(),cx,top+26)}
+ g.font="800 40px system-ui,Arial,sans-serif";g.lineWidth=10;g.strokeStyle="#000";g.fillStyle="#fff";let left=n;
+ ls.forEach((l,j)=>{if(left<=0)return;const sh=l.slice(0,left);left-=l.length+1;const w0=g.measureText(l).width,y=top+nm+j*lh+36;g.textAlign="left";const x0=cx-w0/2;g.strokeText(sh,x0,y);g.fillStyle="#fff";g.fillText(sh,x0,y);
+  if(left<=0&&prog<1&&Math.floor(lt*2.5)%2===0){const cw=g.measureText(sh).width;g.fillStyle=ln.col;g.fillRect(x0+cw+4,y-30,6,36)}});g.textAlign="center"}
+async function locate(img,wk){
+ const m=/^data:([^;]+);base64,(.*)$/.exec(img||"");if(!m)return{};
+ const d=wk.map(w=>w.nama+" ("+w.rupa+")").join("; ");
+ const x=await withModels(["gemini-2.5-flash","gemini-flash-latest"],mm=>post("models/"+mm+":generateContent",{contents:[{role:"user",parts:[{inlineData:{mimeType:m[1],data:m[2]}},{text:"Characters that may appear: "+d+". For each character visible in the image, give the position of the top of the head (hx,hy) and the feet or bottom of the body (fx,fy) as numbers from 0 to 1000 (x from left, y from top). Skip characters not visible. JSON only: {\"kepala\":[{\"nama\":\"...\",\"hx\":0,\"hy\":0,\"fy\":0}]}"}]}],generationConfig:{responseMimeType:"application/json",temperature:0}}));
+ const j=JSON.parse(x.candidates[0].content.parts.map(q=>q.text||"").join("").replace(/^```json|```$/g,"").trim()),o={};
+ (j.kepala||[]).forEach(c=>{if(c&&c.nama&&c.hx!=null&&c.hy!=null)o[c.nama]={hx:Math.min(1,Math.max(0,c.hx/1000)),hy:Math.min(1,Math.max(0,c.hy/1000)),fy:c.fy!=null?Math.min(1,Math.max(0,c.fy/1000)):null}});return o}
 async function assemble(sc,ctx,wmo){
  const W=720,H=1280,cv=document.createElement("canvas");cv.width=W;cv.height=H;const g=cv.getContext("2d");
  const ims=[];for(const s of sc)ims.push(s.img?await loadImg(s.img):null);
@@ -173,22 +191,14 @@ async function assemble(sc,ctx,wmo){
  sc.forEach((s,i)=>{const src=ctx.createBufferSource();src.buffer=s.buf;src.connect(dest);src.start(t0+times[i])});
  await new Promise(res=>{function frame(){const t=ctx.currentTime-t0;if(t>=total){res();return}
   let i=0;times.forEach((x,k)=>{if(t>=x)i=k});const s=sc[i],im=ims[i],dur=s.buf.duration+0.35,p=Math.min(1,Math.max(0,(t-times[i])/dur));
-  if(s.comic){const lt0=t-times[i],ln0=(s.lines.filter(l=>lt0>=l.t0).pop())||s.lines[0],dur=s.buf.duration+.35+(s.last?.9:0),R=prects(s.k,W,H),Fc=focusOf(R,s.pos,W,H),FU={s:1,x:W/2,y:H/2},flip=s.pos===0&&s.page>0,t00=flip?.5:0;
-   let cam,zout=false;
-   if(s.last&&lt0>dur-.9){cam=lerpF(Fc,FU,ease((lt0-(dur-.9))/.7));zout=true}
-   else{const from=s.pos===0?FU:focusOf(R,s.pos-1,W,H);cam=lerpF(from,Fc,ease((lt0-t00)/.7))}
-   g.fillStyle="#f6efdc";g.fillRect(0,0,W,H);
-   if(flip&&lt0<.5){const e=ease(lt0/.5);drawPage(g,W,H,sc,ims,s.page-1,99999,9,FU,-W*e);drawPage(g,W,H,sc,ims,s.page,i,lt0,FU,W*(1-e))}
-   else drawPage(g,W,H,sc,ims,s.page,i,lt0,cam,0);
-   if(!zout&&lt0>=t00+.5&&Fc.s>1.05)bubble(g,ln0,W,H,lt0,wmo&&wmo.pos&&wmo.pos[0]==="t"?190:110);
-   drawWM(g,W,H,wmo,t);prog(.55+.45*Math.min(1,t/total));requestAnimationFrame(frame);return}
-  g.fillStyle="#000";g.fillRect(0,0,W,H);
+  g.fillStyle="#000";g.fillRect(0,0,W,H);let tr=null;
   if(im&&s.shot&&s.fit==="muat"){const q0=Math.max(W/im.width,H/im.height)*1.15;try{g.filter="blur(26px)"}catch(e){}g.drawImage(im,(W-im.width*q0)/2,(H-im.height*q0)/2,im.width*q0,im.height*q0);try{g.filter="none"}catch(e){}g.fillStyle="rgba(0,0,0,.25)";g.fillRect(0,0,W,H);const z=1+0.05*(i%2?1-p:p),q=Math.min(W/im.width,H/im.height)*z*.94;g.drawImage(im,(W-im.width*q)/2,(H-im.height*q)/2,im.width*q,im.height*q)}
-  else if(im){const z=1.04+0.10*(i%2?1-p:p),sw=im.width,sh=im.height,sc2=Math.max(W/sw,H/sh)*z,dw=sw*sc2,dh=sh*sc2,ox=(i%3-1)*30*p;g.drawImage(im,(W-dw)/2+ox,(H-dh)/2,dw,dh)}
+  else if(im){const z=1.04+0.10*(i%2?1-p:p),sw=im.width,sh=im.height,sc2=Math.max(W/sw,H/sh)*z,dw=sw*sc2,dh=sh*sc2,ox=(i%3-1)*30*p;g.drawImage(im,(W-dw)/2+ox,(H-dh)/2,dw,dh);tr={x:(W-dw)/2+ox,y:(H-dh)/2,w:dw,h:dh}}
   else{const gr=g.createLinearGradient(0,0,W,H);gr.addColorStop(0,"#2b3a8f");gr.addColorStop(1,"#a8286b");g.fillStyle=gr;g.fillRect(0,0,W,H)}
-  const gb=g.createLinearGradient(0,H*.55,0,H);gb.addColorStop(0,"rgba(0,0,0,0)");gb.addColorStop(1,"rgba(0,0,0,.65)");g.fillStyle=gb;g.fillRect(0,H*.55,W,H*.45);
+  if(!s.typed){const gb=g.createLinearGradient(0,H*.55,0,H);gb.addColorStop(0,"rgba(0,0,0,0)");gb.addColorStop(1,"rgba(0,0,0,.65)");g.fillStyle=gb;g.fillRect(0,H*.55,W,H*.45)}
+  if(s.frame){g.lineWidth=12;g.strokeStyle="#111";g.strokeRect(6,6,W-12,H-12)}
   const lt=t-times[i],ln=(s.lines.filter(l=>lt>=l.t0).pop())||s.lines[0],cs=chunks(ln.teks);
-  if(s.bubble){bubble(g,ln,W,H,lt,wmo&&wmo.pos&&wmo.pos[0]==="t"?190:110)}else{
+  if(s.typed){typeText(g,ln,s.pos[ln.who],tr,W,H,lt,wmo&&wmo.pos&&wmo.pos[0]==="t"?200:110)}else{
   const k=Math.min(cs.length-1,Math.floor(Math.min(1,Math.max(0,(lt-ln.t0)/Math.max(.1,ln.t1-ln.t0)))*cs.length));
   g.font="800 52px system-ui,Arial,sans-serif";g.textAlign="center";g.lineJoin="round";g.lineWidth=10;g.strokeStyle="#000";g.fillStyle=ln.col;
   const ls=wrap(g,cs[k].toUpperCase(),W-90),y0=H-250-(ls.length-1)*31;
@@ -229,13 +239,13 @@ async function run(resume){
    if(sc[i].img===undefined&&ST.shotMap[i]){sc[i].img=ST.shotMap[i];sc[i].shot=1;log("2/3 Babak "+(i+1)+"/"+sc.length+": guna gambar sebenar");await saveST()}
    if(sc[i].img===undefined){log("2/3 Babak "+(i+1)+"/"+sc.length+": gambar…");
     try{sc[i].img=await makeImage(sc[i].imej+(f.md==="komik"?". Single comic book panel, bold ink outlines, subject centered. Do NOT draw any speech bubbles, balloons, captions or text, keep it a clean illustration":""),style,ST.photos,f.lt,sk?ST.sheet:null,cast)}catch(e){sc[i].img=null;log("   gambar gagal: "+e.message.slice(0,100))}await saveST()}
+   if(sk&&f.pg!=="sari"&&sc[i].img&&!sc[i].shot&&sc[i].pos===undefined){log("   cari kedudukan watak…");try{sc[i].pos=await locate(sc[i].img,ST.wk)}catch(e){sc[i].pos={};log("   kedudukan gagal, guna susunan biasa")}await saveST()}
    for(let j=0;j<sc[i].baris.length;j++){const r=sc[i].baris[j];if(!r.pcm){log("2/3 Babak "+(i+1)+"/"+sc.length+": suara "+(j+1)+"/"+sc[i].baris.length+"…");r.pcm=await makeVoice(r.teks,sk?(ST.vo[r.siapa]||f.sr):f.sr,sk?"watak sketsa "+f.jn+", berekspresi dan hidup":f.nd);await saveST()}}
    prog(.1+.45*(i+1)/sc.length)}
   const names=(ST.wk||[]).map(w=>w.nama);
   const run2=sc.map(s=>{const bs=s.baris.map(r=>toBuf(r.pcm,ctx)),gap=Math.round(24000*.28),tot=bs.reduce((a,b)=>a+b.length,0)+gap*(bs.length-1),buf=ctx.createBuffer(1,tot,24000),ch=buf.getChannelData(0),lines=[];let o=0;
    bs.forEach((b,j)=>{ch.set(b.getChannelData(0),o);const r=s.baris[j],ix=Math.max(0,names.indexOf(r.siapa));lines.push({who:sk?r.siapa:"",teks:r.teks,col:sk?COL[ix%COL.length]:"#ffe14a",ix,t0:o/24000,t1:(o+b.length)/24000});o+=b.length+gap});
-   return{img:s.img,shot:!!s.shot,fit:f.fm,buf,lines,bubble:f.pg==="komik",comic:f.md==="komik"}});
-  if(f.md==="komik")run2.forEach((r,i)=>{r.page=Math.floor(i/4);r.pos=i%4;r.k=Math.min(4,run2.length-r.page*4);r.last=r.pos===r.k-1});
+   return{img:s.img,shot:!!s.shot,fit:f.fm,buf,lines,typed:sk&&f.pg!=="sari",frame:f.md==="komik",pos:s.pos||{},wk:names}});
   log("3/3 Menyambung video (akan main sendiri, jangan tutup tab)…");
   const logoIm=LOGO?await loadImg(LOGO):null,wmo={txt:(f.wm||"").trim(),pos:f.wp||"tl",size:+f.ws||34,op:(+f.wo||70)/100,logo:logoIm,style:f.wg||"lencana",color:f.wc||"#ff7a1a"};
   const out=await assemble(run2,ctx,wmo);

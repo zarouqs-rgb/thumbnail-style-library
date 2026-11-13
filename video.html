@@ -2,11 +2,14 @@
 <style>*{box-sizing:border-box}body{margin:0;font:15px/1.45 system-ui,sans-serif;background:#0d111b;color:#e8ecf4;padding:14px;max-width:760px;margin:auto}h1{font-size:21px;margin:6px 0}h2{font-size:15px;margin:14px 0 6px;color:#9fb4ff}label{display:block;margin:10px 0 4px;color:#9aa6c4;font-size:13px}input,textarea,select{width:100%;background:#161c2b;border:1px solid #2a3350;color:#e8ecf4;border-radius:10px;padding:10px;font:inherit}textarea{min-height:90px}button{background:#2b6cff;color:#fff;border:0;border-radius:10px;padding:12px 16px;margin:4px 4px 4px 0;font:inherit;font-weight:600}button.alt{background:#262e45}button:disabled{opacity:.5}.big{width:100%;font-size:17px;padding:15px;background:linear-gradient(90deg,#ff3d6e,#ff9a3d)}.row{display:flex;gap:8px}.row>*{flex:1}.m{color:#9aa6c4;font-size:13px}pre,textarea.log{white-space:pre-wrap;background:#121828;border:1px solid #232b45;border-radius:10px;padding:10px;font-size:12.5px;min-height:90px;max-height:260px;overflow:auto}#bar{height:8px;background:#1b2236;border-radius:9px;overflow:hidden;margin:8px 0}#bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ff3d6e,#ff9a3d);transition:width .3s}.sc{display:flex;gap:8px;overflow-x:auto;padding:6px 0}.sc img{height:150px;border-radius:8px;flex:none}video#out{width:60%;max-width:300px;border-radius:12px;background:#000;display:block;margin:8px 0}#ver{font-size:12px;background:#7a2b2b;padding:3px 8px;border-radius:99px;vertical-align:middle}#ver.ok{background:#1f7a3d}.th{display:flex;gap:6px;flex-wrap:wrap}.th img{height:54px;border-radius:6px}</style></head><body>
 <h1>Jana Video <span id="ver">⚠ belum lengkap</span></h1>
 <p class="m">Tulis tajuk dan bahan, tambah foto kalau nak, tekan Jana. Skrip, gambar dan suara dibuat oleh Gemini, kemudian disambung jadi video menegak 9:16.</p>
+<label>Mod</label><select id="md"><option value="biasa">Video biasa (penerang)</option><option value="sketsa">Sketsa berbual (2-4 watak)</option></select>
+<div id="skx" style="display:none"><div class="row"><div><label>Bilangan watak</label><select id="wk"><option>2</option><option>3</option><option>4</option></select></div><div><label>Jenis sketsa</label><select id="jn"><option value="komedi lawak spontan">Komedi lawak</option><option value="komedi sindiran sosial">Sindiran sosial</option><option value="drama emosi ringkas">Drama ringkas</option><option value="pendidikan santai yang menghiburkan">Pendidikan santai</option><option value="seram lucu">Seram lucu</option></select></div></div></div>
 <label>Tajuk / topik</label><input id="tj" placeholder="cth: Cara tukar nombor plat di MyJPJ">
 <label>Bahan / nota / fakta (pilihan)</label><textarea id="nt" placeholder="Tampal fakta, langkah atau idea di sini"></textarea>
 <label style="display:flex;gap:8px;align-items:center;color:#e8ecf4"><input id="rs" type="checkbox" checked style="width:auto"> Research dahulu dengan carian Google (fakta lebih tepat)</label>
 <label>Foto sendiri (pilihan, maksimum 2)</label><input id="ft" type="file" accept="image/*" multiple>
 <div class="row"><div><label>Gaya visual</label><select id="gy"></select></div><div><label>Bilangan babak</label><select id="bb"><option>4</option><option selected>5</option><option>6</option><option>7</option><option>8</option></select></div></div>
+<label>Paparan teks</label><select id="pg"><option value="sari">Sari kata di bawah</option><option value="komik">Gelembung komik</option></select>
 <label>Latar &amp; watak</label><select id="lt"><option value="Malaysia">Malaysia (orang dan tempat tempatan)</option><option value="">Bebas (tiada had)</option></select>
 <div class="row"><div><label>Suara</label><select id="sr"></select></div><div><label>Nada</label><select id="nd"><option value="mesra dan ceria">Mesra dan ceria</option><option value="bersemangat seperti pengacara TikTok">Bersemangat</option><option value="tenang dan jelas seperti penerang">Tenang dan jelas</option><option value="dramatik dan misteri">Dramatik</option><option value="santai dan lawak">Santai dan lawak</option></select></div></div>
 <label>Kunci API (biarkan kosong dalam Canvas)</label><input id="key" placeholder="kosong = Canvas isi sendiri">
@@ -39,13 +42,23 @@ async function research(tj,nt){
  const c=x.candidates[0],t=c.content.parts.map(q=>q.text||"").join("").trim();
  const gm=c.groundingMetadata||{},src=(gm.groundingChunks||[]).map(g=>g.web&&(g.web.title||g.web.uri)).filter(Boolean).slice(0,6);log("   carian Google: "+((gm.webSearchQueries||[]).length?"aktif ("+gm.webSearchQueries.length+" carian)":"tiada bukti carian dibuat"));
  if(!t)throw new Error("research kosong");return{t,src}}
-async function writeScript(tj,nt,n,hasPhoto){
- const p="Anda penulis skrip video pendek TikTok/Reels dalam bahasa Melayu Malaysia santai.\nTajuk: "+tj+"\nBahan: "+(nt||"(tiada, guna pengetahuan am yang tepat)")+"\nBuat tepat "+n+" babak. Setiap babak: 'narasi' (1-2 ayat pendek, sebutan mudah, maksimum 22 patah perkataan, tanpa emoji, tanpa simbol) dan 'imej' (arahan imej dalam BAHASA INGGERIS, satu babak visual yang jelas, tiada teks atau tulisan dalam imej"+(hasPhoto?", orang utama ialah orang dalam foto rujukan":"")+"). Konteks: Malaysia (guna istilah, agensi dan harga Malaysia jika berkaitan). Setiap narasi mesti ayat lengkap yang bermakna sendiri, bukan ayat terputus. Babak pertama mesti hook yang menarik perhatian. Babak terakhir ajak tonton/ikut. Juga beri 'kapsyen' (kapsyen Facebook/TikTok pendek dengan 5 hashtag). Balas JSON sahaja: {\"kapsyen\":\"...\",\"babak\":[{\"narasi\":\"...\",\"imej\":\"...\"}]}";
+async function writeScript(f,nota,hasPhoto){
+ const n=+f.bb,sk=f.md==="sketsa",tj=f.tj;
+ let p;
+ if(sk)p="Anda penulis skrip sketsa video pendek TikTok/Reels dalam bahasa Melayu Malaysia santai (gaya borak orang tempatan).\nIdea: "+tj+"\nBahan: "+(nota||"(tiada)")+"\nJenis: "+f.jn+"\nBuat sketsa dengan tepat "+f.wk+" watak yang berbual. Setiap watak ada 'nama' pendek, 'jantina' (lelaki atau perempuan), dan 'rupa' (huraian rupa dalam BAHASA INGGERIS: umur, pakaian, rambut, ciri unik, cukup terperinci supaya sentiasa nampak sama). Buat tepat "+n+" babak; setiap babak ada 'imej' (arahan visual BAHASA INGGERIS: siapa di mana, apa mereka buat, ekspresi; tiada teks dalam imej) dan 'baris' iaitu 2-4 dialog bergilir {siapa:nama watak,teks:dialog pendek maksimum 16 patah perkataan, ayat lengkap, tanpa emoji dan simbol}. Mesti ada hook kuat di awal, kemuncak lucu atau mengena di akhir, dan watak mesti ada personaliti berbeza. Konteks Malaysia. Fakta mesti betul mengikut bahan/research. Juga beri 'kapsyen' pendek dengan 5 hashtag. Balas JSON sahaja: {\"kapsyen\":\"...\",\"watak\":[{\"nama\":\"...\",\"jantina\":\"...\",\"rupa\":\"...\"}],\"babak\":[{\"imej\":\"...\",\"baris\":[{\"siapa\":\"...\",\"teks\":\"...\"}]}]}";
+ else p="Anda penulis skrip video pendek TikTok/Reels dalam bahasa Melayu Malaysia santai.\nTajuk: "+tj+"\nBahan: "+(nota||"(tiada, guna pengetahuan am yang tepat)")+"\nBuat tepat "+n+" babak. Setiap babak: 'narasi' (1-2 ayat pendek, sebutan mudah, maksimum 22 patah perkataan, tanpa emoji, tanpa simbol) dan 'imej' (arahan imej dalam BAHASA INGGERIS, satu babak visual yang jelas, tiada teks atau tulisan dalam imej"+(hasPhoto?", orang utama ialah orang dalam foto rujukan":"")+"). Imej mesti menggambarkan rupa SEBENAR objek/tempat/aplikasi yang dibincangkan mengikut research (huraikan warna, bentuk, susun atur), bukan generik. Konteks: Malaysia (guna istilah, agensi dan harga Malaysia jika berkaitan). Setiap narasi mesti ayat lengkap yang bermakna sendiri. Babak pertama mesti hook yang menarik perhatian. Babak terakhir ajak tonton/ikut. Juga beri 'kapsyen' (kapsyen Facebook/TikTok pendek dengan 5 hashtag). Balas JSON sahaja: {\"kapsyen\":\"...\",\"babak\":[{\"narasi\":\"...\",\"imej\":\"...\"}]}";
  const x=await withModels(["gemini-2.5-flash","gemini-flash-latest","gemini-2.5-flash-preview-09-2025"],m=>post("models/"+m+":generateContent",{contents:[{role:"user",parts:[{text:p}]}],generationConfig:{responseMimeType:"application/json",temperature:.9}}));
- const t=x.candidates[0].content.parts.map(q=>q.text||"").join("").replace(/^```json|```$/g,"").trim();const j=JSON.parse(t);if(!j.babak||!j.babak.length)throw new Error("skrip kosong");return j}
-async function makeImage(prompt,style,photos,lt){
- const parts=[];photos.forEach(b=>parts.push({inlineData:{mimeType:"image/jpeg",data:b}}));
- parts.push({text:(photos.length?"Use the person in the reference photo(s) as the main character, keep their face and likeness. ":"")+"Vertical 9:16 video frame. "+prompt+". "+(lt?"Setting: everyday "+lt+" - Malaysian (Malay) people unless the scene says otherwise, Malaysian streets, buildings, cars and local look. ":"")+"Style: "+style+". Absolutely no text, letters, numbers, license plate characters, captions, logos or watermarks anywhere in the image; keep screens and signs blank or abstract."});
+ const t=x.candidates[0].content.parts.map(q=>q.text||"").join("").replace(/^```json|```$/g,"").trim();const j=JSON.parse(t);if(!j.babak||!j.babak.length)throw new Error("skrip kosong");
+ j.babak.forEach(b=>{if(!b.baris)b.baris=[{siapa:"",teks:b.narasi||""}];b.baris=b.baris.map(r=>({siapa:String(r.siapa||""),teks:String(r.teks||"").replace(/[*_#]/g,"").trim()})).filter(r=>r.teks)});return j}
+const MV=["Puck","Charon","Fenrir","Orus","Algenib"],FV=["Kore","Aoede","Leda","Zephyr","Callirrhoe"],COL=["#ffe14a","#6ee7ff","#ff9ec7","#a8ff8a"];
+function castVoices(wk){const m=0,o={};let mi=0,fi=0;(wk||[]).forEach(w=>{const f=/perempuan|female|wanita/i.test(w.jantina||"");o[w.nama]=f?FV[fi++%FV.length]:MV[mi++%MV.length]});return o}
+async function charSheet(wk,style){
+ const d=wk.map((w,i)=>(i+1)+". "+w.nama+": "+w.rupa).join(" ");
+ const x=await withModels(["gemini-3.1-flash-image","gemini-2.5-flash-image"],m=>post("models/"+m+":generateContent",{contents:[{role:"user",parts:[{text:"Character design sheet: all "+wk.length+" characters standing side by side, full body, plain light background, same art style for everyone. "+d+" Style: "+style+". No text, no labels, no names."}]}],generationConfig:{responseModalities:["TEXT","IMAGE"],imageConfig:{aspectRatio:"16:9"}}}));
+ const pt=((x.candidates||[])[0]||{content:{parts:[]}}).content.parts.find(q=>q.inlineData);if(!pt)throw new Error("tiada lembaran watak");return pt.inlineData.data}
+async function makeImage(prompt,style,photos,lt,sheet,cast){
+ const parts=[];if(sheet)parts.push({inlineData:{mimeType:"image/png",data:sheet}});photos.forEach(b=>parts.push({inlineData:{mimeType:"image/jpeg",data:b}}));
+ parts.push({text:(photos.length?"Use the person in the reference photo(s) as the main character, keep their face and likeness. ":"")+"Vertical 9:16 video frame. "+(sheet?"The first reference image is the character design sheet: draw the same characters with identical faces, hair, clothes and style. ":"")+(cast?"Characters: "+cast+". ":"")+prompt+". "+(lt?"Setting: everyday "+lt+" - Malaysian (Malay) people unless the scene says otherwise, Malaysian streets, buildings, cars and local look. ":"")+"Style: "+style+". Absolutely no text, letters, numbers, license plate characters, captions, logos or watermarks anywhere in the image; keep screens and signs blank or abstract."});
  const x=await withModels(["gemini-3.1-flash-image","gemini-2.5-flash-image"],m=>post("models/"+m+":generateContent",{contents:[{role:"user",parts}],generationConfig:{responseModalities:["TEXT","IMAGE"],imageConfig:{aspectRatio:"9:16"}}}));
  const pt=((x.candidates||[])[0]||{content:{parts:[]}}).content.parts.find(q=>q.inlineData);if(!pt)throw new Error("tiada gambar dalam jawapan");return "data:"+pt.inlineData.mimeType+";base64,"+pt.inlineData.data}
 async function makeVoice(text,voice,tone){
@@ -59,13 +72,24 @@ async function kvSet(k,v){try{const d=await db();return await new Promise((r,j)=
 async function kvGet(k){try{const d=await db();return await new Promise((r,j)=>{const q=d.transaction("k").objectStore("k").get(k);q.onsuccess=()=>r(q.result);q.onerror=()=>j(q.error)})}catch(e){return undefined}}
 async function kvDel(k){try{const d=await db();d.transaction("k","readwrite").objectStore("k").delete(k)}catch(e){}}
 let ST=null;
-const FIELDS=["tj","nt","gy","bb","sr","nd","lt"];
+const FIELDS=["tj","nt","gy","bb","sr","nd","lt","md","wk","jn","pg"];
 function form(){const f={};FIELDS.forEach(k=>f[k]=$("#"+k).value);f.rs=$("#rs").checked;return f}
 function saveForm(){kvSet("form",form())}
 async function saveST(){if(ST)return kvSet("st",ST)}
 function loadImg(src){return new Promise(res=>{const im=new Image();im.onload=()=>res(im);im.onerror=()=>res(null);setTimeout(()=>res(null),8000);im.src=src})}
 function wrap(c,t,w){const ws=t.split(/\s+/),ls=[];let l="";ws.forEach(x=>{const q=l?l+" "+x:x;if(c.measureText(q).width>w&&l){ls.push(l);l=x}else l=q});if(l)ls.push(l);return ls}
 function chunks(t){const o=[];t.split(/(?<=[.,!?;:])\s+/).forEach(p=>{const ws=p.split(/\s+/).filter(Boolean);const k=Math.max(1,Math.ceil(ws.length/Math.ceil(ws.length/5)));for(let i=0;i<ws.length;i+=k)o.push(ws.slice(i,i+k).join(" "))});return o.length?o:[t]}
+function bubble(g,ln,W,H,lt){
+ const left=ln.ix%2===0,w=470,pad=26;g.font="700 40px 'Comic Sans MS',system-ui,Arial,sans-serif";g.textAlign="left";
+ const ls=wrap(g,ln.teks,w-pad*2),lh=50,h=ls.length*lh+pad*2+(ln.who?34:0),x=left?40:W-40-w,y=110+(ln.ix>1?220:0);
+ const pop=Math.min(1,Math.max(0,(lt-ln.t0+.12)/.18)),sc=.85+.15*pop;
+ g.save();g.translate(x+w/2,y+h/2);g.scale(sc,sc);g.translate(-w/2,-h/2);
+ g.fillStyle="#fff";g.strokeStyle="#111";g.lineWidth=6;g.lineJoin="round";
+ g.beginPath();g.roundRect?g.roundRect(0,0,w,h,28):g.rect(0,0,w,h);g.fill();g.stroke();
+ const tx=left?60:w-120;g.beginPath();g.moveTo(tx,h-2);g.lineTo(tx+(left?-10:50),h+60);g.lineTo(tx+50,h-2);g.closePath();g.fillStyle="#fff";g.fill();g.stroke();g.fillRect(tx+3,h-8,44,10);
+ g.fillStyle="#111";let yy=pad+36;
+ if(ln.who){g.font="800 28px system-ui,Arial,sans-serif";g.fillStyle="#c2185b";g.fillText(ln.who.toUpperCase(),pad,yy-4);yy+=34;g.fillStyle="#111"}
+ g.font="700 40px 'Comic Sans MS',system-ui,Arial,sans-serif";ls.forEach((l,j)=>g.fillText(l,pad,yy+j*lh-6));g.restore()}
 async function assemble(sc,ctx){
  const W=720,H=1280,cv=document.createElement("canvas");cv.width=W;cv.height=H;const g=cv.getContext("2d");
  const ims=[];for(const s of sc)ims.push(s.img?await loadImg(s.img):null);
@@ -83,9 +107,13 @@ async function assemble(sc,ctx){
   if(im){const z=1.04+0.10*(i%2?1-p:p),sw=im.width,sh=im.height,sc2=Math.max(W/sw,H/sh)*z,dw=sw*sc2,dh=sh*sc2,ox=(i%3-1)*30*p;g.drawImage(im,(W-dw)/2+ox,(H-dh)/2,dw,dh)}
   else{const gr=g.createLinearGradient(0,0,W,H);gr.addColorStop(0,"#2b3a8f");gr.addColorStop(1,"#a8286b");g.fillStyle=gr;g.fillRect(0,0,W,H)}
   const gb=g.createLinearGradient(0,H*.55,0,H);gb.addColorStop(0,"rgba(0,0,0,0)");gb.addColorStop(1,"rgba(0,0,0,.65)");g.fillStyle=gb;g.fillRect(0,H*.55,W,H*.45);
-  const cs=chunks(s.narasi),k=Math.min(cs.length-1,Math.floor(Math.min(1,Math.max(0,(t-times[i])/s.buf.duration))*cs.length));
-  g.font="800 54px system-ui,Arial,sans-serif";g.textAlign="center";g.lineJoin="round";g.lineWidth=10;g.strokeStyle="#000";g.fillStyle="#ffe14a";
-  const ls=wrap(g,cs[k].toUpperCase(),W-90);ls.forEach((l,j)=>{const y=H-250+j*62-(ls.length-1)*31;g.strokeText(l,W/2,y);g.fillText(l,W/2,y)});
+  const lt=t-times[i],ln=(s.lines.filter(l=>lt>=l.t0).pop())||s.lines[0],cs=chunks(ln.teks);
+  if(s.bubble){bubble(g,ln,W,H,lt)}else{
+  const k=Math.min(cs.length-1,Math.floor(Math.min(1,Math.max(0,(lt-ln.t0)/Math.max(.1,ln.t1-ln.t0)))*cs.length));
+  g.font="800 52px system-ui,Arial,sans-serif";g.textAlign="center";g.lineJoin="round";g.lineWidth=10;g.strokeStyle="#000";g.fillStyle=ln.col;
+  const ls=wrap(g,cs[k].toUpperCase(),W-90),y0=H-250-(ls.length-1)*31;
+  ls.forEach((l,j)=>{const y=y0+j*62;g.strokeText(l,W/2,y);g.fillText(l,W/2,y)});
+  if(ln.who){g.font="800 34px system-ui,Arial,sans-serif";g.lineWidth=8;g.fillStyle=ln.col;g.strokeText(ln.who.toUpperCase(),W/2,y0-70);g.fillText(ln.who.toUpperCase(),W/2,y0-70)}}
   prog(.55+.45*Math.min(1,t/total));requestAnimationFrame(frame)}frame()});
  rec.stop();await done;ctx.close&&ctx.close();
  return{blob:new Blob(parts,{type:(rec.mimeType||mt||"video/webm").split(";")[0]}),mime:rec.mimeType||mt}}
@@ -102,33 +130,39 @@ async function run(resume){
   ST={f:form(),photos:[],sj:null,sc:null,srcs:[],cap:"",nota:null};
   for(const f of [].slice.call($("#ft").files,0,2)){const b=await readFile(f);if(b)ST.photos.push(b)}
   await kvDel("video");await saveST()}else{log("Menyambung daripada tempat terakhir…");
-  FIELDS.forEach(k=>$("#"+k).value=ST.f[k]);$("#rs").checked=ST.f.rs}
+  FIELDS.forEach(k=>{if(ST.f[k]!=null)$("#"+k).value=ST.f[k]});$("#rs").checked=ST.f.rs}
  const AC=window.AudioContext||window.webkitAudioContext,ctx=new AC();try{await ctx.resume()}catch(e){}
  try{
   const f=ST.f,tj=f.tj,n=+f.bb,style=STYLES[f.gy];
   if(!ST.sj){
    let nota=f.nt.trim(),srcs=[];
    if(f.rs){log("0/3 Research dengan carian Google…");try{const r=await research(tj,nota);nota=(nota?nota+"\n\n":"")+"HASIL RESEARCH (guna ini sebagai fakta):\n"+r.t;srcs=r.src;log("   research siap"+(srcs.length?" ("+srcs.length+" sumber)":""))}catch(e){log("   research gagal, guna pengetahuan am: "+e.message.slice(0,100))}}
-   log("1/3 Menulis skrip…");const sj=await writeScript(tj,nota,n,ST.photos.length>0);
-   ST.sj=sj;ST.srcs=srcs;ST.cap=sj.kapsyen||"";ST.sc=sj.babak.map(b=>({narasi:String(b.narasi||"").replace(/[*_#]/g,"").trim(),imej:b.imej||tj,img:undefined,pcm:null}));await saveST();log("   skrip siap: "+ST.sc.length+" babak")}
+   log("1/3 Menulis skrip…");const sj=await writeScript(f,nota,ST.photos.length>0);
+   ST.sj=1;ST.srcs=srcs;ST.cap=sj.kapsyen||"";ST.wk=sj.watak||[];ST.vo=castVoices(ST.wk);
+   ST.sc=sj.babak.map(b=>({imej:b.imej||tj,img:undefined,baris:b.baris.map(r=>({siapa:r.siapa,teks:r.teks,pcm:null}))}));await saveST();log("   skrip siap: "+ST.sc.length+" babak"+(ST.wk.length?", "+ST.wk.length+" watak":""))}
   else log("1/3 Skrip sudah ada ("+ST.sc.length+" babak)");
-  prog(.1);const sc=ST.sc;
+  prog(.1);const sc=ST.sc,sk=f.md==="sketsa";
+  if(sk&&ST.sheet===undefined){log("2/3 Lukis lembaran watak…");try{ST.sheet=await charSheet(ST.wk,style)}catch(e){ST.sheet=null;log("   lembaran watak gagal: "+e.message.slice(0,100))}await saveST()}
+  const cast=sk?ST.wk.map(w=>w.nama+" ("+w.rupa+")").join("; "):"";
   for(let i=0;i<sc.length;i++){
    if(sc[i].img===undefined){log("2/3 Babak "+(i+1)+"/"+sc.length+": gambar…");
-    try{sc[i].img=await makeImage(sc[i].imej,style,ST.photos,f.lt)}catch(e){sc[i].img=null;log("   gambar gagal: "+e.message.slice(0,100))}await saveST()}
-   if(!sc[i].pcm){log("2/3 Babak "+(i+1)+"/"+sc.length+": suara…");sc[i].pcm=await makeVoice(sc[i].narasi,f.sr,f.nd);await saveST()}
+    try{sc[i].img=await makeImage(sc[i].imej,style,ST.photos,f.lt,sk?ST.sheet:null,cast)}catch(e){sc[i].img=null;log("   gambar gagal: "+e.message.slice(0,100))}await saveST()}
+   for(let j=0;j<sc[i].baris.length;j++){const r=sc[i].baris[j];if(!r.pcm){log("2/3 Babak "+(i+1)+"/"+sc.length+": suara "+(j+1)+"/"+sc[i].baris.length+"…");r.pcm=await makeVoice(r.teks,sk?(ST.vo[r.siapa]||f.sr):f.sr,sk?"watak sketsa "+f.jn+", berekspresi dan hidup":f.nd);await saveST()}}
    prog(.1+.45*(i+1)/sc.length)}
-  const run2=sc.map(s=>({narasi:s.narasi,img:s.img,buf:toBuf(s.pcm,ctx)}));
+  const names=(ST.wk||[]).map(w=>w.nama);
+  const run2=sc.map(s=>{const bs=s.baris.map(r=>toBuf(r.pcm,ctx)),gap=Math.round(24000*.28),tot=bs.reduce((a,b)=>a+b.length,0)+gap*(bs.length-1),buf=ctx.createBuffer(1,tot,24000),ch=buf.getChannelData(0),lines=[];let o=0;
+   bs.forEach((b,j)=>{ch.set(b.getChannelData(0),o);const r=s.baris[j],ix=Math.max(0,names.indexOf(r.siapa));lines.push({who:sk?r.siapa:"",teks:r.teks,col:sk?COL[ix%COL.length]:"#ffe14a",ix,t0:o/24000,t1:(o+b.length)/24000});o+=b.length+gap});
+   return{img:s.img,buf,lines,bubble:f.pg==="komik"}});
   log("3/3 Menyambung video (akan main sendiri, jangan tutup tab)…");
   const out=await assemble(run2,ctx);
   await kvSet("video",out.blob);ST.done=true;ST.mime=out.mime;await saveST();
   showResult(out.blob,sc,ST.cap,ST.srcs,out.mime);prog(1);log("Siap. Muat turun video atau hantar kepada Claude.");
  }catch(e){log("RALAT: "+(e.message||e)+"\n(kemajuan disimpan, tekan Sambung untuk cuba lagi)");$("#rep").value=L.join("\n");$("#res").style.display="block";try{ctx.close()}catch(_){}if(ST&&ST.sj)$("#rsm").style.display="inline-block"}
  $("#go").disabled=false}
-$("#go").onclick=()=>run(false);$("#rsm").onclick=()=>run(true);
+$("#md").addEventListener("change",()=>{$("#skx").style.display=$("#md").value==="sketsa"?"block":"none"});$("#go").onclick=()=>run(false);$("#rsm").onclick=()=>run(true);
 FIELDS.concat(["rs"]).forEach(k=>$("#"+k).addEventListener("change",saveForm));$("#tj").addEventListener("input",saveForm);$("#nt").addEventListener("input",saveForm);
 (async()=>{const fm=await kvGet("form");if(fm){FIELDS.forEach(k=>{if(fm[k]!=null)$("#"+k).value=fm[k]});if(fm.rs!=null)$("#rs").checked=fm.rs}
  const st=await kvGet("st");if(st&&st.sj){ST=st;if(st.done){const v=await kvGet("video");if(v){showResult(v,st.sc,st.cap,st.srcs,st.mime);log("Video terakhir dipulihkan.")}}else{$("#rsm").style.display="inline-block";log("Ada kerja belum siap ("+st.sc.filter(x=>x.pcm).length+"/"+st.sc.length+" babak). Tekan Sambung.")}}})();
 $("#cp").onclick=()=>{const t=$("#rep");t.select();try{document.execCommand("copy")}catch(e){}};
-window.__VID_END=1;$("#ver").textContent="✓ v1.3 lengkap";$("#ver").className="ok";
+window.__VID_END=1;$("#ver").textContent="✓ v1.4 lengkap";$("#ver").className="ok";
 </script></body></html>

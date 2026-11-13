@@ -26,6 +26,8 @@
 <label>Logo watermark (pilihan)</label><input id="wl" type="file" accept="image/*"><div id="wlp" class="m"></div>
 <label>Kunci API (biarkan kosong dalam Canvas)</label><input id="key" placeholder="kosong = Canvas isi sendiri">
 <div style="margin-top:12px"><button class="big" id="go">Jana Video</button><button class="alt big" id="rsm" style="display:none;margin-top:8px">Sambung dari tempat terakhir</button></div>
+<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="alt" id="sv" style="flex:1">💾 Simpan kemajuan ke fail</button><button class="alt" id="ldb" style="flex:1">📂 Buka kemajuan dari fail</button></div><input type="file" id="ld" accept=".json,application/json" style="display:none">
+<p class="m" style="margin:4px 0 0">Gemini Canvas tak ingat kemajuan bila ditutup atau dimuat semula. Tekan Simpan sekali-sekala, dan buka fail itu untuk sambung.</p>
 <div id="bar"><i></i></div>
 <pre id="log">Sedia.</pre>
 <div id="res" style="display:none">
@@ -225,6 +227,19 @@ async function assemble(sc,ctx,wmo){
   drawWM(g,W,H,wmo,t);prog(.55+.45*Math.min(1,t/total));requestAnimationFrame(frame)}frame()});
  rec.stop();await done;ctx.close&&ctx.close();
  return{blob:new Blob(parts,{type:(rec.mimeType||mt||"video/webm").split(";")[0]}),mime:rec.mimeType||mt}}
+async function shrink(u){if(!u||u.indexOf("data:")!==0)return u;const im=await loadImg(u);if(!im)return u;const q=Math.min(1,1280/im.height),c=document.createElement("canvas");c.width=Math.round(im.width*q);c.height=Math.round(im.height*q);c.getContext("2d").drawImage(im,0,0,c.width,c.height);return c.toDataURL("image/jpeg",.85)||u}
+async function exportState(){
+ if(!ST||!ST.sj){log("Belum ada kemajuan untuk disimpan (skrip belum siap).");return}
+ log("Menyimpan kemajuan ke fail…");const c=JSON.parse(JSON.stringify(ST));c.f=Object.assign({},ST.f);
+ for(const x of c.sc||[]){if(x.img)x.img=await shrink(x.img)}
+ c.done=false;const blob=new Blob([JSON.stringify({jv:1,st:c})],{type:"application/json"}),a=document.createElement("a");
+ a.href=URL.createObjectURL(blob);a.download="kemajuan-video.json";document.body.appendChild(a);a.click();setTimeout(()=>a.remove(),500);
+ log("Fail kemajuan-video.json dimuat turun ("+(blob.size/1048576).toFixed(1)+" MB). Simpan di tempat selamat.")}
+function importState(txt){let j;try{j=JSON.parse(txt)}catch(e){log("Fail tak sah.");return}
+ const st=j&&j.st;if(!st||!st.sj||!Array.isArray(st.sc)||!st.sc.every(x=>x&&Array.isArray(x.baris))){log("Fail kemajuan ini tak serasi dengan versi sekarang.");return}
+ ST=st;ST.done=false;FIELDS.forEach(k=>{if(ST.f&&ST.f[k]!=null)$("#"+k).value=ST.f[k]});if(ST.f&&ST.f.rs!=null)$("#rs").checked=ST.f.rs;
+ const ok=ST.sc.filter(x=>x.baris.every(r=>r.pcm)).length;$("#rsm").style.display="inline-block";
+ log("Kemajuan dibuka: "+ST.sc.length+" babak, suara siap "+ok+", gambar siap "+ST.sc.filter(x=>x.img!==undefined).length+". Tekan Sambung.")}
 function showResult(blob,sc,cap,srcs,mime){
  const url=URL.createObjectURL(blob),ext=/mp4/.test(blob.type)?"mp4":"webm";
  $("#out").src=url;$("#dl").innerHTML='<a href="'+url+'" download="video.'+ext+'"><button>Muat turun video ('+ext+', '+(blob.size/1048576).toFixed(1)+' MB)</button></a>';
@@ -233,8 +248,8 @@ function showResult(blob,sc,cap,srcs,mime){
  $("#rep").value=["Video siap","Format: "+(mime||blob.type),"Saiz: "+(blob.size/1048576).toFixed(2)+" MB","Babak: "+sc.length,"Sumber research: "+((srcs||[]).join("; ")||"tiada"),"Gambar gagal: "+sc.filter(s=>!s.img).length].join("\n");
  $("#res").style.display="block"}
 async function run(resume){
- L.length=0;$("#go").disabled=true;$("#rsm").style.display="none";$("#res").style.display="none";prog(0);
- if(!resume||!ST){const tj=$("#tj").value.trim();if(!tj){log("Isi tajuk dahulu.");$("#go").disabled=false;return}
+ window.__VID_BUSY=1;L.length=0;$("#go").disabled=true;$("#rsm").style.display="none";$("#res").style.display="none";prog(0);
+ if(!resume||!ST){const tj=$("#tj").value.trim();if(!tj){log("Isi tajuk dahulu.");window.__VID_BUSY=0;$("#go").disabled=false;return}
   ST={f:form(),photos:[],sj:null,sc:null,srcs:[],cap:"",nota:null,shots:SHOTS.map(s=>({data:shotCanvas(s,1280).toDataURL("image/jpeg",.88),scene:s.scene}))};
   for(const f of [].slice.call($("#ft").files,0,2)){const b=await readFile(f);if(b)ST.photos.push(b)}
   await kvDel("video");await saveST()}else{log("Menyambung daripada tempat terakhir…");
@@ -279,11 +294,13 @@ async function run(resume){
   await kvSet("video",out.blob);ST.done=true;ST.mime=out.mime;await saveST();
   showResult(out.blob,sc,ST.cap,ST.srcs,out.mime);prog(1);log("Siap. Muat turun video atau hantar kepada Claude.");
  }catch(e){log("RALAT: "+(e.message||e)+(e.st===401||/401/.test(e.message||"")?"\nSesi Canvas sudah tamat (terlalu lama ditinggalkan). Tutup Canvas, buka semula, kemudian tekan Sambung.":"")+"\n(kemajuan disimpan, tekan Sambung untuk cuba lagi)");try{ctx.close()}catch(_){}if(ST&&ST.sj)$("#rsm").style.display="inline-block"}
- $("#go").disabled=false}
+window.__VID_BUSY=0;$("#go").disabled=false}
 $("#wo").addEventListener("input",()=>{$("#wov").textContent=$("#wo").value+"%"});
 $("#fs").addEventListener("change",async()=>{for(const f of [].slice.call($("#fs").files)){const im=await new Promise(res=>{const fr=new FileReader();fr.onload=()=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>res(null);i.src=fr.result};fr.onerror=()=>res(null);fr.readAsDataURL(f)});if(im)SHOTS.push({im,c:{t:0,b:0,l:0,r:0},scene:0})}$("#fs").value="";renderShots()});
 $("#wl").addEventListener("change",()=>{const f=$("#wl").files[0];if(!f)return;const fr=new FileReader();fr.onload=()=>{LOGO=fr.result;kvSet("logo",LOGO);$("#wlp").textContent="Logo dipilih: "+f.name};fr.readAsDataURL(f)});
-$("#md").addEventListener("change",()=>{if($("#md").value==="komik")$("#gy").value="Komik klasik (dakwat tebal)";$("#skx").style.display=$("#md").value!=="biasa"?"block":"none"});$("#go").onclick=()=>run(false);$("#rsm").onclick=()=>run(true);
+$("#md").addEventListener("change",()=>{if($("#md").value==="komik")$("#gy").value="Komik klasik (dakwat tebal)";$("#skx").style.display=$("#md").value!=="biasa"?"block":"none"});$("#sv").onclick=exportState;$("#ldb").onclick=()=>$("#ld").click();
+$("#ld").addEventListener("change",()=>{const f=$("#ld").files[0];if(!f)return;const fr=new FileReader();fr.onload=()=>{importState(fr.result);$("#ld").value=""};fr.readAsText(f)});
+$("#go").onclick=()=>run(false);$("#rsm").onclick=()=>run(true);
 FIELDS.concat(["rs"]).forEach(k=>$("#"+k).addEventListener("change",saveForm));$("#tj").addEventListener("input",saveForm);$("#nt").addEventListener("input",saveForm);
 (async()=>{const lg=await kvGet("logo");if(lg){LOGO=lg;$("#wlp").textContent="Logo tersimpan"}const fm=await kvGet("form");if(fm){FIELDS.forEach(k=>{if(fm[k]!=null)$("#"+k).value=fm[k]});if(fm.rs!=null)$("#rs").checked=fm.rs;$("#wov").textContent=$("#wo").value+"%"}
  try{const st=await kvGet("st");const ok=st&&st.sj&&Array.isArray(st.sc)&&st.sc.length&&st.sc.every(x=>x&&Array.isArray(x.baris));
@@ -292,5 +309,5 @@ FIELDS.concat(["rs"]).forEach(k=>$("#"+k).addEventListener("change",saveForm));$
  catch(e){log("Gagal pulihkan kemajuan: "+(e.message||e));ST=null;await kvDel("st")}
 })();
 $("#cp").onclick=()=>{const t=$("#rep");t.select();try{document.execCommand("copy")}catch(e){}};
-window.__VID_END=1;$("#ver").textContent="✓ v1.9.5 lengkap";$("#ver").className="ok";
+window.__VID_END=1;$("#ver").textContent="✓ v1.9.6 lengkap";$("#ver").className="ok";
 </script></body></html>

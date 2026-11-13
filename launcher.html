@@ -11,7 +11,7 @@ function inject(t){var d=new DOMParser().parseFromString(t,"text/html"),b=docume
 S.forEach(function(s){s.parentNode.removeChild(s)});
 [].slice.call(d.head.querySelectorAll("style")).forEach(function(s){document.head.appendChild(document.importNode(s,true))});
 b.removeAttribute("style");b.innerHTML=d.body.innerHTML;
-var m=document.createElement("button");m.textContent="☰ Menu";m.style.cssText="position:fixed;top:8px;right:8px;z-index:99999;background:#000a;color:#fff;border:1px solid #fff4;border-radius:99px;padding:6px 12px;font:13px system-ui";m.onclick=function(){location.reload()};b.appendChild(m);
+var m=document.createElement("button");m.textContent="☰ Menu";m.style.cssText="position:fixed;top:8px;right:8px;z-index:99999;background:#000a;color:#fff;border:1px solid #fff4;border-radius:99px;padding:6px 12px;font:13px system-ui";m.onclick=function(){if(window.__VID_BUSY&&!m.dataset.w){m.dataset.w=1;m.textContent="⚠ Sedang jana, tekan lagi untuk keluar";setTimeout(function(){m.dataset.w="";m.textContent="☰ Menu"},4000);return}location.reload()};b.appendChild(m);
 S.forEach(function(s){var n=document.createElement("script");n.textContent=s.textContent;b.appendChild(n)})}
 function load(u,i){if(i>=B.length){st.textContent="Gagal memuat. Semak sambungan dan cuba lagi.";return}
 fetch(B[i]+u+"?t="+Date.now()).then(function(r){if(!r.ok)throw 0;return r.text()}).then(function(t){if(t.indexOf("</html>")<0)throw 0;return t}).then(inject,function(){load(u,i+1)})}

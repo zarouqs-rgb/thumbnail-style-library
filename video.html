@@ -35,6 +35,8 @@
 <div id="dl"></div>
 <h2>Babak</h2><div class="sc" id="sc"></div>
 <h2>Kapsyen cadangan</h2><textarea id="cap" class="log" readonly onclick="this.select()"></textarea>
+<h2>Transkrip dialog (tekan lama dan salin kalau butang tak jalan)</h2><textarea id="trs" class="log" readonly onclick="this.select()"></textarea>
+<button class="alt" id="cpt">Salin transkrip</button>
 <h2>Laporan (tekan lama dan salin kalau butang tak jalan)</h2><textarea id="rep" class="log" readonly onclick="this.select()"></textarea>
 <button class="alt" id="cp">Salin laporan</button>
 </div>
@@ -322,11 +324,15 @@ function importState(txt){let j;try{j=JSON.parse(txt)}catch(e){log("Fail tak sah
  ST=st;ST.done=false;FIELDS.forEach(k=>{if(ST.f&&ST.f[k]!=null)$("#"+k).value=ST.f[k]});if(ST.f&&ST.f.rs!=null)$("#rs").checked=ST.f.rs;
  const ok=ST.sc.filter(x=>x.baris.every(r=>r.pcm)).length;$("#rsm").style.display="inline-block";
  log("Kemajuan dibuka: "+ST.sc.length+" babak, suara siap "+ok+", gambar siap "+ST.sc.filter(x=>x.img!==undefined).length+". Tekan Sambung.")}
+function makeTranscript(sc){let t=0,n=0;const out=["TRANSKRIP DIALOG (teks skrip + anggaran masa mula, saat; masa dikira daripada panjang suara)"];
+ (sc||[]).forEach((b,i)=>{out.push("--- Babak "+(i+1)+(b.lok?" | "+b.lok:"")+" ---");(b.baris||[]).forEach(r=>{const d=r.pcm?atob(r.pcm).length/2/24000:0;n++;out.push(n+". ["+t.toFixed(1)+"s] "+(r.siapa?r.siapa+": ":"")+(r.teks||""));t+=d+.28});t+=.07});
+ out.push("Jumlah anggaran: "+t.toFixed(1)+" saat, "+n+" baris");return out.join("\n")}
 function showResult(blob,sc,cap,srcs,mime){
  const url=URL.createObjectURL(blob),ext=/mp4/.test(blob.type)?"mp4":"webm";
  $("#out").src=url;$("#dl").innerHTML='<a href="'+url+'" download="video.'+ext+'"><button>Muat turun video ('+ext+', '+(blob.size/1048576).toFixed(1)+' MB)</button></a>';
  $("#sc").innerHTML="";sc.forEach(s=>{if(s.img){const i=new Image();i.src=s.img;$("#sc").appendChild(i)}});
  $("#cap").value=cap||"";
+ $("#trs").value=makeTranscript(sc);
  $("#rep").value=["Video siap","Format: "+(mime||blob.type),"Saiz: "+(blob.size/1048576).toFixed(2)+" MB","Babak: "+sc.length,"Sumber research: "+((srcs||[]).join("; ")||"tiada"),"Gambar gagal: "+sc.filter(s=>!s.img).length].join("\n");
  $("#res").style.display="block"}
 async function run(resume){
@@ -398,6 +404,7 @@ FIELDS.concat(["rs"]).forEach(k=>$("#"+k).addEventListener("change",saveForm));$
  else if(ok){ST=st;if(st.done){const v=await kvGet("video");if(v){showResult(v,st.sc,st.cap,st.srcs,st.mime);log("Video terakhir dipulihkan.")}}else{$("#rsm").style.display="inline-block";log("Ada kerja belum siap ("+st.sc.filter(x=>x.baris.every(r=>r.pcm)).length+"/"+st.sc.length+" babak). Tekan Sambung.")}}}
  catch(e){log("Gagal pulihkan kemajuan: "+(e.message||e));ST=null;await kvDel("st")}
 })();
+$("#cpt").onclick=()=>{const t=$("#trs");t.select();try{document.execCommand("copy")}catch(e){}};
 $("#cp").onclick=()=>{const t=$("#rep");t.select();try{document.execCommand("copy")}catch(e){}};
-window.__VID_END=1;$("#ver").textContent="✓ v1.13.1 lengkap";$("#ver").className="ok";
+window.__VID_END=1;$("#ver").textContent="✓ v1.13.2 lengkap";$("#ver").className="ok";
 </script></body></html>

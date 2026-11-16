@@ -214,6 +214,7 @@ function typeText(g,ln,pp,tr,W,H,lt,topMin){
  g.font="800 40px system-ui,Arial,sans-serif";g.lineWidth=10;g.strokeStyle="#000";g.fillStyle="#fff";let left=n;
  ls.forEach((l,j)=>{if(left<=0)return;const sh=l.slice(0,left);left-=l.length+1;const w0=g.measureText(l).width,y=top+nm+j*lh+36;g.textAlign="left";const x0=cx-w0/2;g.strokeText(sh,x0,y);g.fillStyle="#fff";g.fillText(sh,x0,y);
   if(left<=0&&prog<1&&Math.floor(lt*2.5)%2===0){const cw=g.measureText(sh).width;g.fillStyle=ln.col;g.fillRect(x0+cw+4,y-30,6,36)}});g.textAlign="center"}
+async function locateRetry(img,wk,imej,baris,lg){let last;for(let t=0;t<4;t++){try{const r=await locate(img,wk,imej,baris);r.ok=true;return r}catch(e){last=e;if(lg)lg("   semakan gagal ("+String(e&&e.message||e).slice(0,90)+")"+(t<3?", cuba lagi…":""));await sleep(3000*(t+1))}}return{pos:{},padan:true,ok:false}}
 async function locate(img,wk,imej,baris){
  const m=/^data:([^;]+);base64,(.*)$/.exec(img||"");if(!m)return{pos:{},padan:true};
  const d=wk.map(w=>w.nama+" ("+w.rupa+")").join("; "),dl=(baris||[]).map(r=>(r.siapa?r.siapa+": ":"")+r.teks).join(" | ");
@@ -375,9 +376,9 @@ async function run(resume){
    if(sc[i].img===undefined){log("2/3 Babak "+(i+1)+"/"+sc.length+": gambar…");
     try{sc[i].img=await makeImage(sc[i].imej+komSuf(f),style,ST.photos,f.lt,sk?ST.sheet:null,cast,ST.plates&&ST.plates[sc[i].lok],ST.boards&&ST.boards[Math.floor(i/6)],"cell #"+(i%6+1)+" (row "+(Math.floor((i%6)/3)+1)+", column "+(i%3+1)+")")}catch(e){sc[i].img=null;log("   gambar gagal: "+e.message.slice(0,100))}await saveST()}
    if(sk&&sc[i].img&&!sc[i].shot&&sc[i].pos===undefined){log("   semak gambar dan kedudukan watak…");
-    let r={pos:{},padan:true,ok:false};try{r=await locate(sc[i].img,ST.wk,sc[i].imej,sc[i].baris);r.ok=true}catch(e){log("   semakan gagal ("+String(e&&e.message||e).slice(0,110)+"), cuba sekali lagi…");try{await sleep(2500);r=await locate(sc[i].img,ST.wk,sc[i].imej,sc[i].baris);r.ok=true}catch(e2){r={pos:{},padan:true,ok:false};log("   semakan gagal lagi ("+String(e2&&e2.message||e2).slice(0,110)+"), guna susunan biasa")}}
+    let r=await locateRetry(sc[i].img,ST.wk,sc[i].imej,sc[i].baris,log);
     for(let at=1;at<=2&&(r.rosak||(!r.padan&&r.masalah));at++){log(r.rosak?"   gambar rosak (cermin/bertindih), lukis semula":"   gambar tak sepadan dengan dialog, lukis semula: "+r.masalah.slice(0,90));
-     try{const im2=await makeImage(sc[i].imej+komSuf(f)+". IMPORTANT CORRECTION: "+(r.rosak?"draw ONE clean continuous scene with no mirrored, reflected or duplicated part and no deformed bodies. ":"")+(r.masalah||""),style,ST.photos,f.lt,ST.sheet,cast,ST.plates&&ST.plates[sc[i].lok],ST.boards&&ST.boards[Math.floor(i/6)],"cell #"+(i%6+1)+" (row "+(Math.floor((i%6)/3)+1)+", column "+(i%3+1)+")");sc[i].img=im2;try{r=await locate(im2,ST.wk,sc[i].imej,sc[i].baris);r.ok=true}catch(e){r={pos:{},padan:true,ok:false}}}catch(e){log("   lukis semula gagal, guna gambar asal");break}}
+     try{const im2=await makeImage(sc[i].imej+komSuf(f)+". IMPORTANT CORRECTION: "+(r.rosak?"draw ONE clean continuous scene with no mirrored, reflected or duplicated part and no deformed bodies. ":"")+(r.masalah||""),style,ST.photos,f.lt,ST.sheet,cast,ST.plates&&ST.plates[sc[i].lok],ST.boards&&ST.boards[Math.floor(i/6)],"cell #"+(i%6+1)+" (row "+(Math.floor((i%6)/3)+1)+", column "+(i%3+1)+")");sc[i].img=im2;r=await locateRetry(im2,ST.wk,sc[i].imej,sc[i].baris,log)}catch(e){log("   lukis semula gagal, guna gambar asal");break}}
     sc[i].cek={semak:r.ok!==false,ok:r.ok!==false&&!r.rosak&&(r.padan!==false||!r.masalah),masalah:r.rosak?"gambar rosak (cermin/bertindih)":(r.padan===false?String(r.masalah||""):"")};if(!sc[i].cek.ok)log("   amaran: gambar babak "+(i+1)+(sc[i].cek.semak?" masih bermasalah: "+sc[i].cek.masalah.slice(0,90):" tidak dapat disemak"));
     sc[i].pos=r.pos||{};await saveST()}
    prog(.25+.30*(i+1)/sc.length)}
@@ -407,5 +408,5 @@ FIELDS.concat(["rs"]).forEach(k=>$("#"+k).addEventListener("change",saveForm));$
 })();
 $("#cpt").onclick=()=>{const t=$("#trs");t.select();try{document.execCommand("copy")}catch(e){}};
 $("#cp").onclick=()=>{const t=$("#rep");t.select();try{document.execCommand("copy")}catch(e){}};
-window.__VID_END=1;$("#ver").textContent="✓ v1.13.3 lengkap";$("#ver").className="ok";
+window.__VID_END=1;$("#ver").textContent="✓ v1.13.4 lengkap";$("#ver").className="ok";
 </script></body></html>

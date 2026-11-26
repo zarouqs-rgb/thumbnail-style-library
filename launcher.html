@@ -3,7 +3,7 @@
 <h1>Apps Jebat Saputra</h1><p>Pilih app untuk dibuka.</p>
 <button class="c a" data-u="video.html"><b>🎬 Jana Video</b><span>Skrip, gambar, suara, komik dan sketsa jadi video</span></button>
 <button class="c s" data-u="video-stable.html"><b>🛟 Jana Video (versi stabil)</b><span>Versi v1.8 yang sudah diuji, guna kalau versi terbaru bermasalah</span></button>
-<button class="c v" data-r="jambatan" data-u="index.html"><b>🎥 Studio Video</b><span>Adegan kod, suara ikut stempel masa, rakam MP4 dan thumbnail</span></button>
+<a class="c v" href="https://share.gemini.google/vDGV8xeiVbr2" target="_blank" rel="noopener" style="text-decoration:none"><b>🎥 Studio Video</b><span>Adegan kod, suara ikut stempel masa, rakam MP4 dan thumbnail</span></a>
 <button class="c b" data-u="app.html"><b>🖼️ TH Library</b><span>Pustaka gaya thumbnail dan poster</span></button>
 <div id="st"></div>
 <script>
@@ -16,5 +16,5 @@ var m=document.createElement("button");m.textContent="☰ Menu";m.style.cssText=
 S.forEach(function(s){var n=document.createElement("script");n.textContent=s.textContent;b.appendChild(n)})}
 function load(u,i,R){var L=R?["https://raw.githubusercontent.com/zarouqs-rgb/"+R+"/main/","https://cdn.jsdelivr.net/gh/zarouqs-rgb/"+R+"@main/"]:B;if(i>=L.length){st.textContent="Gagal memuat. Semak sambungan dan cuba lagi.";return}
 fetch(L[i]+u+"?t="+Date.now()).then(function(r){if(!r.ok)throw 0;return r.text()}).then(function(t){if(t.indexOf("</html>")<0)throw 0;return t}).then(inject,function(){load(u,i+1,R)})}
-[].forEach.call(document.querySelectorAll(".c"),function(b){b.onclick=function(){st.textContent="Memuat…";load(b.getAttribute("data-u"),0,b.getAttribute("data-r"))}})})();
+[].forEach.call(document.querySelectorAll("button.c"),function(b){b.onclick=function(){st.textContent="Memuat…";load(b.getAttribute("data-u"),0,b.getAttribute("data-r"))}})})();
 </script></body></html>
